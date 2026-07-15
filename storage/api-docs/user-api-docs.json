@@ -1,0 +1,2845 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "PayCan User API Documentation",
+        "description": "User API for PayCan payment processing platform. Access products, manage orders, subscriptions, and user profile. Requires JWT authentication via Sanctum.",
+        "contact": {
+            "name": "PayCan Support",
+            "email": "support@paycan.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "PayCan API Server"
+        }
+    ],
+    "paths": {
+        "/api/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get current user",
+                "description": "Retrieve authenticated user information",
+                "operationId": "getCurrentUser",
+                "responses": {
+                    "200": {
+                        "description": "User information retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Refresh access token",
+                "description": "Generate a new access token and revoke the current one",
+                "operationId": "refreshToken",
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token refreshed successfully"
+                                        },
+                                        "token": {
+                                            "description": "New API access token",
+                                            "type": "string",
+                                            "example": "1|abc123def456..."
+                                        },
+                                        "token_type": {
+                                            "description": "Token type",
+                                            "type": "string",
+                                            "example": "Bearer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/checkout": {
+            "post": {
+                "tags": [
+                    "User Checkout"
+                ],
+                "summary": "Create order and initiate checkout",
+                "description": "Create a new order and get payment gateway checkout URL",
+                "operationId": "createCheckout",
+                "requestBody": {
+                    "description": "Checkout data",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "product_price_id",
+                                    "gateway"
+                                ],
+                                "properties": {
+                                    "product_price_id": {
+                                        "description": "Product price ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "gateway": {
+                                        "description": "Payment gateway",
+                                        "type": "string",
+                                        "enum": [
+                                            "stripe",
+                                            "paypal"
+                                        ],
+                                        "example": "stripe"
+                                    },
+                                    "quantity": {
+                                        "description": "Quantity (optional, default 1)",
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "example": 1
+                                    },
+                                    "shipping_address": {
+                                        "description": "Shipping address for physical products (optional)",
+                                        "properties": {
+                                            "line1": {
+                                                "type": "string",
+                                                "example": "123 Main St"
+                                            },
+                                            "line2": {
+                                                "type": "string",
+                                                "example": "Apt 4B"
+                                            },
+                                            "city": {
+                                                "type": "string",
+                                                "example": "New York"
+                                            },
+                                            "state": {
+                                                "type": "string",
+                                                "example": "NY"
+                                            },
+                                            "postal_code": {
+                                                "type": "string",
+                                                "example": "10001"
+                                            },
+                                            "country": {
+                                                "type": "string",
+                                                "example": "US"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Checkout session created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "order": {
+                                            "$ref": "#/components/schemas/Order"
+                                        },
+                                        "gateway_data": {
+                                            "properties": {
+                                                "checkout_url": {
+                                                    "type": "string",
+                                                    "example": "https://checkout.stripe.com/pay/cs_test_..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Product not available",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation errors",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/checkout/portal": {
+            "post": {
+                "tags": [
+                    "User Checkout"
+                ],
+                "summary": "Create portal checkout session",
+                "description": "Create a checkout session for the portal embedded view",
+                "operationId": "createPortalCheckout",
+                "requestBody": {
+                    "description": "Portal checkout data",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "product_price_id",
+                                    "gateway"
+                                ],
+                                "properties": {
+                                    "product_price_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "gateway": {
+                                        "type": "string",
+                                        "enum": [
+                                            "stripe",
+                                            "paypal"
+                                        ],
+                                        "example": "stripe"
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "example": 1
+                                    },
+                                    "return_url": {
+                                        "type": "string",
+                                        "example": "https://example.com/success"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Portal checkout session created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "session_id": {
+                                            "type": "string",
+                                            "example": "cs_test_..."
+                                        },
+                                        "checkout_url": {
+                                            "type": "string",
+                                            "example": "https://checkout.stripe.com/..."
+                                        },
+                                        "order": {
+                                            "$ref": "#/components/schemas/Order"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/checkout/preview": {
+            "get": {
+                "tags": [
+                    "User Checkout"
+                ],
+                "summary": "Get checkout preview for product/price",
+                "description": "Returns product details, available prices with tax, selected price breakdown, and available payment methods.",
+                "operationId": "getCheckoutPreview",
+                "parameters": [
+                    {
+                        "name": "product_id",
+                        "in": "query",
+                        "description": "Product ID to preview",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "product_price_id",
+                        "in": "query",
+                        "description": "Product Price ID to preview",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "selected_price_id",
+                        "in": "query",
+                        "description": "Selected Product Price ID for detailed breakdown",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "in": "query",
+                        "description": "Quantity for calculation (default: 1)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "billing_country",
+                        "in": "query",
+                        "description": "Billing country (ISO code, e.g., US, EU)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "US"
+                        }
+                    },
+                    {
+                        "name": "billing_state",
+                        "in": "query",
+                        "description": "Billing state/province (ISO or short code, e.g., CA)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "CA"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Checkout preview data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "product": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Pro Plan"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "subscription"
+                                                },
+                                                "description": {
+                                                    "type": "string",
+                                                    "example": "Access to all features"
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "example": null,
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "selected_price": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Monthly"
+                                                },
+                                                "amount": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 9.99
+                                                },
+                                                "currency": {
+                                                    "type": "string",
+                                                    "example": "USD"
+                                                },
+                                                "billing_period": {
+                                                    "type": "string",
+                                                    "example": "monthly"
+                                                },
+                                                "trial_days": {
+                                                    "type": "integer",
+                                                    "example": 14,
+                                                    "nullable": true
+                                                },
+                                                "is_recurring": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "subtotal": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 19.98
+                                                },
+                                                "tax_amount": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 1.6
+                                                },
+                                                "final_price": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 21.58
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "prices": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Monthly"
+                                                    },
+                                                    "amount": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 9.99
+                                                    },
+                                                    "currency": {
+                                                        "type": "string",
+                                                        "example": "USD"
+                                                    },
+                                                    "billing_period": {
+                                                        "type": "string",
+                                                        "example": "monthly"
+                                                    },
+                                                    "trial_days": {
+                                                        "type": "integer",
+                                                        "example": 14,
+                                                        "nullable": true
+                                                    },
+                                                    "is_recurring": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "subtotal": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 9.99
+                                                    },
+                                                    "tax_amount": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 0.8
+                                                    },
+                                                    "final_price": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 10.79
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "quantity": {
+                                            "type": "integer",
+                                            "example": 2
+                                        },
+                                        "tax": {
+                                            "properties": {
+                                                "rate": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 0.08
+                                                },
+                                                "country": {
+                                                    "type": "string",
+                                                    "example": "US"
+                                                },
+                                                "state": {
+                                                    "type": "string",
+                                                    "example": "CA"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "payment_methods": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "key": {
+                                                        "type": "string",
+                                                        "example": "stripe"
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Stripe"
+                                                    },
+                                                    "icon": {
+                                                        "type": "string",
+                                                        "example": "stripe"
+                                                    },
+                                                    "description": {
+                                                        "type": "string",
+                                                        "example": "Credit card, Apple Pay"
+                                                    },
+                                                    "supports_subscriptions": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error or missing product/product_price",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Product not found or inactive",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/checkout/{order}/cancel": {
+            "post": {
+                "tags": [
+                    "User Checkout"
+                ],
+                "summary": "Cancel a pending order",
+                "description": "Cancel an order that hasn't been paid yet",
+                "operationId": "cancelOrder",
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order cancelled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Order cancelled successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Order cannot be cancelled",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/orders": {
+            "get": {
+                "tags": [
+                    "User Orders"
+                ],
+                "summary": "Get user orders",
+                "description": "Retrieve paginated and filterable list of current user's orders with optional related data",
+                "operationId": "getUserOrders",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page (max 100)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "filter[status]",
+                        "in": "query",
+                        "description": "Filter by order status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "processing",
+                                "completed",
+                                "failed",
+                                "cancelled",
+                                "refunded"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[gateway]",
+                        "in": "query",
+                        "description": "Filter by payment gateway",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "stripe",
+                                "paypal"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[order_number]",
+                        "in": "query",
+                        "description": "Filter by order number (partial match)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter[created_after]",
+                        "in": "query",
+                        "description": "Filter orders created after date",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2024-01-01"
+                        }
+                    },
+                    {
+                        "name": "filter[created_before]",
+                        "in": "query",
+                        "description": "Filter orders created before date",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2024-12-31"
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (comma-separated)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "productPrice,productPrice.product,transactions,fulfillments"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort orders (prefix with - for descending)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "created_at",
+                                "-created_at",
+                                "total",
+                                "-total",
+                                "status",
+                                "-status"
+                            ],
+                            "example": "-created_at"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Orders retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Order"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/orders/{order}": {
+            "get": {
+                "tags": [
+                    "User Orders"
+                ],
+                "summary": "Get order details",
+                "description": "Retrieve a specific order by ID for the current user",
+                "operationId": "getUserOrder",
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (comma-separated)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "productPrice,productPrice.product,transactions,fulfillments"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Order"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied - not your order",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/orders/{order}/downloads": {
+            "get": {
+                "tags": [
+                    "User Orders"
+                ],
+                "summary": "Get download links",
+                "description": "Get download links for digital products in an order",
+                "operationId": "getOrderDownloads",
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Downloads retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "order_id": {
+                                            "type": "integer"
+                                        },
+                                        "downloads": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "product_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "product_title": {
+                                                        "type": "string"
+                                                    },
+                                                    "download_url": {
+                                                        "type": "string"
+                                                    },
+                                                    "expires_at": {
+                                                        "type": "string"
+                                                    },
+                                                    "downloads_remaining": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/orders/{order}/licenses": {
+            "get": {
+                "tags": [
+                    "User Orders"
+                ],
+                "summary": "Get license keys",
+                "description": "Get license keys for an order",
+                "operationId": "getOrderLicenses",
+                "parameters": [
+                    {
+                        "name": "order",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Licenses retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "order_id": {
+                                            "type": "integer"
+                                        },
+                                        "licenses": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "product_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "product_title": {
+                                                        "type": "string"
+                                                    },
+                                                    "license_key": {
+                                                        "type": "string"
+                                                    },
+                                                    "activated_at": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/products": {
+            "get": {
+                "tags": [
+                    "User Products"
+                ],
+                "summary": "Get active products",
+                "description": "Retrieve paginated and filterable list of active products with their active prices",
+                "operationId": "getUserProducts",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page (max 100)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "filter[type]",
+                        "in": "query",
+                        "description": "Filter by product type",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "digital",
+                                "physical",
+                                "service",
+                                "subscription"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (only active prices will be included)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "prices"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort products (prefix with - for descending)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "created_at",
+                                "-created_at",
+                                "title",
+                                "-title"
+                            ],
+                            "example": "-created_at"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Products retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/products/{product}": {
+            "get": {
+                "tags": [
+                    "User Products"
+                ],
+                "summary": "Get product details",
+                "description": "Retrieve a specific active product by ID with its active prices",
+                "operationId": "getUserProduct",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "description": "Product ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "prod_123"
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (only active prices will be included)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "prices"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Product not found or not active",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/subscriptions": {
+            "get": {
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "summary": "Get user subscriptions",
+                "description": "Retrieve paginated and filterable list of current user's subscriptions with optional related data",
+                "operationId": "getUserSubscriptions",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page (max 100)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "filter[status]",
+                        "in": "query",
+                        "description": "Filter by subscription status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "active",
+                                "trialing",
+                                "past_due",
+                                "canceled",
+                                "incomplete",
+                                "incomplete_expired"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[gateway]",
+                        "in": "query",
+                        "description": "Filter by payment gateway",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "stripe",
+                                "paypal"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[created_after]",
+                        "in": "query",
+                        "description": "Filter subscriptions created after date",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2024-01-01"
+                        }
+                    },
+                    {
+                        "name": "filter[created_before]",
+                        "in": "query",
+                        "description": "Filter subscriptions created before date",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2024-12-31"
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (comma-separated)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "product,productPrice,order,transactions"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort subscriptions (prefix with - for descending)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "created_at",
+                                "-created_at",
+                                "status",
+                                "-status",
+                                "next_billing_date",
+                                "-next_billing_date"
+                            ],
+                            "example": "-created_at"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscriptions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Subscription"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "summary": "Create subscription",
+                "description": "Create a new subscription for a product price",
+                "operationId": "createUserSubscription",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "product_price_id"
+                                ],
+                                "properties": {
+                                    "product_price_id": {
+                                        "description": "Product price ID to subscribe to",
+                                        "type": "string",
+                                        "example": "price_123"
+                                    },
+                                    "gateway": {
+                                        "description": "Payment gateway to use",
+                                        "type": "string",
+                                        "enum": [
+                                            "stripe",
+                                            "paypal"
+                                        ]
+                                    },
+                                    "payment_method_id": {
+                                        "description": "Payment method ID from gateway",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Subscription created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Subscription"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/subscriptions/{subscription}": {
+            "get": {
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "summary": "Get subscription details",
+                "description": "Retrieve a specific subscription by ID for the current user",
+                "operationId": "getUserSubscription",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "description": "Subscription ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (comma-separated)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "product,productPrice,order,transactions"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscription retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Subscription"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied - not your subscription",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Subscription not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/subscriptions/{subscription}/cancel": {
+            "post": {
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "summary": "Cancel subscription",
+                "description": "Cancel an active subscription at the end of the billing period",
+                "operationId": "cancelUserSubscription",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "description": "Subscription ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "immediately": {
+                                        "description": "Cancel immediately instead of at period end",
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subscription canceled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Subscription"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subscription canceled successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied - not your subscription",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Subscription cannot be canceled",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/subscriptions/{subscription}/resume": {
+            "post": {
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "summary": "Resume subscription",
+                "description": "Resume a canceled subscription before the end date",
+                "operationId": "resumeUserSubscription",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "description": "Subscription ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subscription resumed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Subscription"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subscription resumed successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied - not your subscription",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Subscription cannot be resumed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/subscriptions/{subscription}/change": {
+            "post": {
+                "tags": [
+                    "User Subscriptions"
+                ],
+                "summary": "Change subscription plan",
+                "description": "Change the subscription to a different product price",
+                "operationId": "changeUserSubscription",
+                "parameters": [
+                    {
+                        "name": "subscription",
+                        "in": "path",
+                        "description": "Subscription ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "product_price_id"
+                                ],
+                                "properties": {
+                                    "product_price_id": {
+                                        "description": "New product price ID",
+                                        "type": "string",
+                                        "example": "price_456"
+                                    },
+                                    "prorate": {
+                                        "description": "Whether to prorate the change",
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subscription changed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Subscription"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subscription changed successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied - not your subscription",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error or subscription cannot be changed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/transactions": {
+            "get": {
+                "tags": [
+                    "User Transactions"
+                ],
+                "summary": "Get user transactions",
+                "description": "Retrieve paginated and filterable list of current user's transactions",
+                "operationId": "getUserTransactions",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page (max 100)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "filter[status]",
+                        "in": "query",
+                        "description": "Filter by transaction status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "completed",
+                                "failed",
+                                "refunded"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[type]",
+                        "in": "query",
+                        "description": "Filter by transaction type",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "charge",
+                                "refund",
+                                "subscription_create",
+                                "subscription_renew",
+                                "subscription_update",
+                                "subscription_cancel"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[gateway]",
+                        "in": "query",
+                        "description": "Filter by payment gateway",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "stripe",
+                                "paypal"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (comma-separated)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "order,subscription"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort transactions (prefix with - for descending)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "created_at",
+                                "-created_at",
+                                "amount",
+                                "-amount"
+                            ],
+                            "example": "-created_at"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transactions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/transactions/{transaction}": {
+            "get": {
+                "tags": [
+                    "User Transactions"
+                ],
+                "summary": "Get transaction details",
+                "description": "Retrieve a specific transaction by ID for the current user",
+                "operationId": "getUserTransaction",
+                "parameters": [
+                    {
+                        "name": "transaction",
+                        "in": "path",
+                        "description": "Transaction ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "description": "Include related data (comma-separated)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "order,subscription"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transaction retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access denied - not your transaction",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Transaction not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "title": "User",
+                "description": "User model",
+                "required": [
+                    "id",
+                    "name",
+                    "email"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "User ID (ULID or custom string)",
+                        "type": "string",
+                        "example": "01HKXZ7K5QGXP0B1J2R3T4V5W6"
+                    },
+                    "name": {
+                        "description": "User's full name",
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "description": "User's email address",
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com"
+                    },
+                    "email_verified_at": {
+                        "description": "Email verification timestamp",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Account creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Product": {
+                "title": "Product",
+                "description": "Product model",
+                "required": [
+                    "id",
+                    "title",
+                    "slug",
+                    "type",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Product ID (ULID or custom string)",
+                        "type": "string",
+                        "example": "01HKXZ8M9PQRS2T3U4V5W6X7Y8"
+                    },
+                    "title": {
+                        "description": "Product title",
+                        "type": "string",
+                        "example": "Premium Subscription"
+                    },
+                    "slug": {
+                        "description": "Product URL slug",
+                        "type": "string",
+                        "example": "premium-subscription"
+                    },
+                    "description": {
+                        "description": "Product description",
+                        "type": "string",
+                        "example": "Access to premium features",
+                        "nullable": true
+                    },
+                    "type": {
+                        "description": "Product type",
+                        "type": "string",
+                        "enum": [
+                            "physical",
+                            "digital",
+                            "service",
+                            "subscription"
+                        ],
+                        "example": "subscription"
+                    },
+                    "image": {
+                        "description": "Product image URL",
+                        "type": "string",
+                        "example": "https://example.com/image.jpg",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "description": "Whether the product is active",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "meta": {
+                        "description": "Additional product metadata",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "prices": {
+                        "description": "Product pricing options",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductPrice"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ProductPrice": {
+                "title": "ProductPrice",
+                "description": "Product pricing model",
+                "required": [
+                    "id",
+                    "product_id",
+                    "amount",
+                    "currency",
+                    "billing_period",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Price ID (ULID or custom string)",
+                        "type": "string",
+                        "example": "01HKXZ9N0QRST3U4V5W6X7Y8Z9"
+                    },
+                    "product_id": {
+                        "description": "Associated product ID",
+                        "type": "string",
+                        "example": "01HKXZ8M9PQRS2T3U4V5W6X7Y8"
+                    },
+                    "amount": {
+                        "description": "Price amount",
+                        "type": "number",
+                        "format": "decimal",
+                        "example": 29.99
+                    },
+                    "currency": {
+                        "description": "Currency code",
+                        "type": "string",
+                        "example": "USD"
+                    },
+                    "billing_period": {
+                        "description": "Billing period",
+                        "type": "string",
+                        "enum": [
+                            "once",
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly"
+                        ],
+                        "example": "monthly"
+                    },
+                    "billing_interval": {
+                        "description": "Billing interval (e.g., every 1 month)",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "is_active": {
+                        "description": "Whether the price is active",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Order": {
+                "title": "Order",
+                "description": "Order model",
+                "required": [
+                    "id",
+                    "user_id",
+                    "product_id",
+                    "product_price_id",
+                    "amount",
+                    "currency",
+                    "status"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Order ID (auto-incrementing)",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "description": "Customer user ID",
+                        "type": "string",
+                        "example": "01HKXZ7K5QGXP0B1J2R3T4V5W6"
+                    },
+                    "product_id": {
+                        "description": "Product ID",
+                        "type": "string",
+                        "example": "01HKXZ8M9PQRS2T3U4V5W6X7Y8"
+                    },
+                    "product_price_id": {
+                        "description": "Product price ID",
+                        "type": "string",
+                        "example": "01HKXZ9N0QRST3U4V5W6X7Y8Z9"
+                    },
+                    "amount": {
+                        "description": "Order amount",
+                        "type": "number",
+                        "format": "decimal",
+                        "example": 29.99
+                    },
+                    "currency": {
+                        "description": "Currency code",
+                        "type": "string",
+                        "example": "USD"
+                    },
+                    "status": {
+                        "description": "Order status",
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "processing",
+                            "completed",
+                            "failed",
+                            "cancelled",
+                            "refunded"
+                        ],
+                        "example": "completed"
+                    },
+                    "gateway": {
+                        "description": "Payment gateway used",
+                        "type": "string",
+                        "enum": [
+                            "stripe",
+                            "paypal"
+                        ],
+                        "example": "stripe"
+                    },
+                    "gateway_order_id": {
+                        "description": "Gateway-specific order ID",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "quantity": {
+                        "description": "Order quantity",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "customer_note": {
+                        "description": "Customer note",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Subscription": {
+                "title": "Subscription",
+                "description": "Subscription model",
+                "required": [
+                    "id",
+                    "user_id",
+                    "product_id",
+                    "product_price_id",
+                    "status",
+                    "gateway"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Subscription ID (auto-incrementing)",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "description": "Customer user ID",
+                        "type": "string",
+                        "example": "01HKXZ7K5QGXP0B1J2R3T4V5W6"
+                    },
+                    "product_id": {
+                        "description": "Product ID",
+                        "type": "string",
+                        "example": "01HKXZ8M9PQRS2T3U4V5W6X7Y8"
+                    },
+                    "product_price_id": {
+                        "description": "Product price ID",
+                        "type": "string",
+                        "example": "01HKXZ9N0QRST3U4V5W6X7Y8Z9"
+                    },
+                    "status": {
+                        "description": "Subscription status",
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "trialing",
+                            "past_due",
+                            "canceled",
+                            "incomplete",
+                            "incomplete_expired"
+                        ],
+                        "example": "active"
+                    },
+                    "gateway": {
+                        "description": "Payment gateway",
+                        "type": "string",
+                        "enum": [
+                            "stripe",
+                            "paypal"
+                        ],
+                        "example": "stripe"
+                    },
+                    "gateway_subscription_id": {
+                        "description": "Gateway-specific subscription ID",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "current_period_start": {
+                        "description": "Current billing period start",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "current_period_end": {
+                        "description": "Current billing period end (alias, unified display)",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "next_billing_date": {
+                        "description": "Next billing date",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "ends_at": {
+                        "description": "Cancellation effective date",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "canceled_at": {
+                        "description": "Cancellation timestamp",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "trial_ends_at": {
+                        "description": "Trial end date",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "can_resume": {
+                        "description": "Whether the subscription can be resumed",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Transaction": {
+                "title": "Transaction",
+                "description": "Transaction model",
+                "required": [
+                    "id",
+                    "order_id",
+                    "amount",
+                    "currency",
+                    "status",
+                    "gateway"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Transaction ID (auto-incrementing)",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "order_id": {
+                        "description": "Related order ID",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "amount": {
+                        "description": "Transaction amount",
+                        "type": "number",
+                        "format": "decimal",
+                        "example": 29.99
+                    },
+                    "currency": {
+                        "description": "Currency code",
+                        "type": "string",
+                        "example": "USD"
+                    },
+                    "status": {
+                        "description": "Transaction status",
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "processing",
+                            "completed",
+                            "failed",
+                            "refunded"
+                        ],
+                        "example": "completed"
+                    },
+                    "gateway": {
+                        "description": "Payment gateway",
+                        "type": "string",
+                        "enum": [
+                            "stripe",
+                            "paypal"
+                        ],
+                        "example": "stripe"
+                    },
+                    "gateway_transaction_id": {
+                        "description": "Gateway-specific transaction ID",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "type": {
+                        "description": "Transaction type",
+                        "type": "string",
+                        "enum": [
+                            "payment",
+                            "refund"
+                        ],
+                        "example": "payment"
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Fulfillment": {
+                "title": "Fulfillment",
+                "description": "Order fulfillment model",
+                "required": [
+                    "id",
+                    "order_id",
+                    "status"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Fulfillment ID",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "order_id": {
+                        "description": "Related order ID",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "status": {
+                        "description": "Fulfillment status",
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "processing",
+                            "shipped",
+                            "delivered",
+                            "failed"
+                        ],
+                        "example": "delivered"
+                    },
+                    "tracking_number": {
+                        "description": "Shipping tracking number",
+                        "type": "string",
+                        "example": "1234567890",
+                        "nullable": true
+                    },
+                    "carrier": {
+                        "description": "Shipping carrier",
+                        "type": "string",
+                        "example": "USPS",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "description": "Fulfillment notes",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "PaginationLinks": {
+                "title": "Pagination Links",
+                "description": "Pagination navigation links",
+                "properties": {
+                    "first": {
+                        "description": "First page URL",
+                        "type": "string",
+                        "example": "http://example.com/api/orders?page=1",
+                        "nullable": true
+                    },
+                    "last": {
+                        "description": "Last page URL",
+                        "type": "string",
+                        "example": "http://example.com/api/orders?page=10",
+                        "nullable": true
+                    },
+                    "prev": {
+                        "description": "Previous page URL",
+                        "type": "string",
+                        "example": "http://example.com/api/orders?page=1",
+                        "nullable": true
+                    },
+                    "next": {
+                        "description": "Next page URL",
+                        "type": "string",
+                        "example": "http://example.com/api/orders?page=3",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PaginationMeta": {
+                "title": "Pagination Metadata",
+                "description": "Pagination metadata",
+                "properties": {
+                    "current_page": {
+                        "description": "Current page number",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "from": {
+                        "description": "Starting item number",
+                        "type": "integer",
+                        "example": 16,
+                        "nullable": true
+                    },
+                    "last_page": {
+                        "description": "Last page number",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "path": {
+                        "description": "Base URL",
+                        "type": "string",
+                        "example": "http://example.com/api/orders"
+                    },
+                    "per_page": {
+                        "description": "Items per page",
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "to": {
+                        "description": "Ending item number",
+                        "type": "integer",
+                        "example": 30,
+                        "nullable": true
+                    },
+                    "total": {
+                        "description": "Total items",
+                        "type": "integer",
+                        "example": 150
+                    },
+                    "links": {
+                        "description": "Page links array",
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "example": "http://example.com/api/orders?page=2",
+                                    "nullable": true
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "example": "2"
+                                },
+                                "active": {
+                                    "type": "boolean",
+                                    "example": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ErrorResponse": {
+                "title": "Error Response",
+                "description": "Standard error response",
+                "properties": {
+                    "message": {
+                        "description": "Error message",
+                        "type": "string",
+                        "example": "Unauthenticated."
+                    },
+                    "errors": {
+                        "description": "Validation errors (if applicable)",
+                        "type": "object",
+                        "nullable": true,
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "SuccessResponse": {
+                "title": "Success Response",
+                "description": "Standard success response",
+                "properties": {
+                    "message": {
+                        "description": "Success message",
+                        "type": "string",
+                        "example": "Operation completed successfully"
+                    },
+                    "data": {
+                        "description": "Response data (if applicable)",
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ValidationErrorResponse": {
+                "title": "Validation Error Response",
+                "description": "Validation error response with field-specific errors",
+                "properties": {
+                    "message": {
+                        "description": "Error message",
+                        "type": "string",
+                        "example": "The given data was invalid."
+                    },
+                    "errors": {
+                        "description": "Field-specific validation errors",
+                        "type": "object",
+                        "example": {
+                            "email": [
+                                "The email field is required."
+                            ],
+                            "name": [
+                                "The name field is required."
+                            ]
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "example": "The email field is required."
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "description": "USER AUTHENTICATION (Sanctum JWT) - For mobile apps & SPAs. To get a user token for testing, use the Admin API endpoint: POST /api/admin/users/sync (see Admin API documentation). Format: Bearer <user_jwt_token>",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "API endpoints for user authentication and token management"
+        },
+        {
+            "name": "User Checkout",
+            "description": "User checkout and payment initiation endpoints"
+        },
+        {
+            "name": "User Orders",
+            "description": "User order management endpoints"
+        },
+        {
+            "name": "User Products",
+            "description": "User product catalog endpoints"
+        },
+        {
+            "name": "User Subscriptions",
+            "description": "User subscription management endpoints"
+        },
+        {
+            "name": "User Transactions",
+            "description": "User transaction management endpoints"
+        }
+    ]
+}

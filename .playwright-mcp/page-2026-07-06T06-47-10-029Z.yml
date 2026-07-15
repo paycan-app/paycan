@@ -1,0 +1,19 @@
+- generic [ref=f2e2]:
+  - generic [ref=f2e3]: ✓
+  - heading "This is where the payment gateway takes over" [level=1] [ref=f2e4]
+  - paragraph [ref=f2e5]:
+    - text: In production,
+    - code [ref=f2e6]: checkout_url
+    - text: points to a hosted Stripe or PayPal page. The customer pays there and is redirected back to your app, while PayCan records the order via webhooks.
+  - generic [ref=f2e7]:
+    - term [ref=f2e8]: Session
+    - definition [ref=f2e9]: cs_test
+    - term [ref=f2e10]: Gateway
+    - definition [ref=f2e11]: stripe
+    - term [ref=f2e12]: Order
+    - definition [ref=f2e13]: ORD-TEST
+    - term [ref=f2e14]: Total
+    - definition [ref=f2e15]: 29 USD
+  - link "← Back to the demo" [ref=f2e16] [cursor=pointer]:
+    - /url: index.html
+  - paragraph [ref=f2e17]: Demo only — no payment was made and no data left your browser.

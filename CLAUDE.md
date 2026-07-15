@@ -1,3 +1,54 @@
+=== What is it? ===
+
+This is a payment-integration platform that lets external applications accept one-time or recurring payments (and other payment types) through a unified API.
+
+Tech Stack  
+- Laravel 12  
+- PHP 8.4.11  
+- Vue 3  
+- Tailwind CSS 4
+- Shadcn Vue Components  
+
+Key Packages  
+- Filament v4 (admin panel)  
+- spatie/laravel-query-builder (API filtering & inclusion)
+
+Architecture Overview  
+- Admin API – server-to-server, secured by a secret API key; full CRUD on every resource.  
+- User API – customer-facing, requires a user-scoped token obtained from `POST /admin/users/sync`; manages orders, payments, subscriptions, etc.  
+- Filament admin panel – GUI for staff to manage users, orders, payments, settings.  
+- Self-service portal – lightweight Vue front-end that consumes the User API through our official SDK.
+
+Maintenance Rule  
+After any breaking change, update in lock-step:  
+1. Admin & User API code  
+2. OpenAPI (Swagger) docs for both APIs  
+3. SDK (consuming the APIs)  
+4. Portal (consuming the SDK)
+5. Tests
+6. Documents, readme files and examples.
+8. Build and copy SDKs by npm run copy-sdk
+9. Clear cache by php artisan optimize:clear
+
+
+Front-end Changes
+Always start by reviewing the official shadcn-vue component catalog. If a matching component exists, install it with `npx shadcn-vue@latest add <component>` and use it as-is. Only build a custom component when no suitable shadcn-vue alternative is available.
+
+Security
+Security is critical: this open-source library will be embedded in third-party applications.  
+- Apply defense-in-depth (input validation, output escaping, principle of least privilege, secure defaults).  
+- Never trust client data; use Laravel’s Form Requests, policies, and Gates.  
+- Sanitize all user input, enforce strict types, and parameterize every query.  
+- Store secrets only in `.env`, never in code or version control or encripted on DB.  
+- Rate-limit and throttle every public endpoint.  
+- Log security events without leaking sensitive data.  
+- Run `composer audit` and `npm audit` before each release.  
+- Flag any prompt that could introduce SQLi, XSS, CSRF, RCE, or privilege escalation.
+- We do not want a role managment package at this moment. Do not add a new one. 
+- User APIs should be limited to current user data (other than active product and their active prices)
+- Do not change what is not requested. If it is a must-have feature or improvment ask the user to do that or not
+- Most IDs in our databases are not integer but string consider it when validating them
+  
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -10,14 +61,22 @@ This application is a Laravel application and its main Laravel ecosystems packag
 
 - php - 8.4.11
 - inertiajs/inertia-laravel (INERTIA) - v2
+- laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
-- tightenco/ziggy (ZIGGY) - v2
+- laravel/sanctum (SANCTUM) - v4
+- laravel/wayfinder (WAYFINDER) - v0
+- laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
-- pestphp/pest (PEST) - v3
+- laravel/sail (SAIL) - v1
+- pestphp/pest (PEST) - v4
+- phpunit/phpunit (PHPUNIT) - v12
 - @inertiajs/vue3 (INERTIA) - v2
-- tailwindcss (TAILWINDCSS) - v3
+- tailwindcss (TAILWINDCSS) - v4
 - vue (VUE) - v3
+- @laravel/vite-plugin-wayfinder (WAYFINDER) - v0
+- eslint (ESLINT) - v9
+- prettier (PRETTIER) - v3
 
 
 ## Conventions
@@ -117,6 +176,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 - Inertia.js components should be placed in the `resources/js/Pages` directory unless specified differently in the JS bundler (vite.config.js).
 - Use `Inertia::render()` for server-side routing instead of traditional Blade views.
+- Use `search-docs` for accurate guidance on all things Inertia.
 
 <code-snippet lang="php" name="Inertia::render Example">
 // routes/web.php example
@@ -143,6 +203,11 @@ Route::get('/users', function () {
 
 ### Deferred Props & Empty States
 - When using deferred props on the frontend, you should add a nice empty state with pulsing / animated skeleton.
+
+### Inertia Form General Guidance
+- The recommended way to build forms when using Inertia is with the `<Form>` component - a useful example is below. Use `search-docs` with a query of `form component` for guidance.
+- Forms can also be built using the `useForm` helper for more programmatic control, or to follow existing conventions. Use `search-docs` with a query of `useForm helper` for guidance.
+- `resetOnError`, `resetOnSuccess`, and `setDefaultsOnSuccess` are available on the `<Form>` component. Use `search-docs` with a query of 'form component resetting' for guidance.
 
 
 === laravel/core rules ===
@@ -275,6 +340,51 @@ it('has emails', function (string $email) {
 </code-snippet>
 
 
+=== pest/v4 rules ===
+
+## Pest 4
+
+- Pest v4 is a huge upgrade to Pest and offers: browser testing, smoke testing, visual regression testing, test sharding, and faster type coverage.
+- Browser testing is incredibly powerful and useful for this project.
+- Browser tests should live in `tests/Browser/`.
+- Use the `search-docs` tool for detailed guidance on utilizing these features.
+
+### Browser Testing
+- You can use Laravel features like `Event::fake()`, `assertAuthenticated()`, and model factories within Pest v4 browser tests, as well as `RefreshDatabase` (when needed) to ensure a clean state for each test.
+- Interact with the page (click, type, scroll, select, submit, drag-and-drop, touch gestures, etc.) when appropriate to complete the test.
+- If requested, test on multiple browsers (Chrome, Firefox, Safari).
+- If requested, test on different devices and viewports (like iPhone 14 Pro, tablets, or custom breakpoints).
+- Switch color schemes (light/dark mode) when appropriate.
+- Take screenshots or pause tests for debugging when appropriate.
+
+### Example Tests
+
+<code-snippet name="Pest Browser Test Example" lang="php">
+it('may reset the password', function () {
+    Notification::fake();
+
+    $this->actingAs(User::factory()->create());
+
+    $page = visit('/sign-in'); // Visit on a real browser...
+
+    $page->assertSee('Sign In')
+        ->assertNoJavascriptErrors() // or ->assertNoConsoleLogs()
+        ->click('Forgot Password?')
+        ->fill('email', 'nuno@laravel.com')
+        ->click('Send Reset Link')
+        ->assertSee('We have emailed your password reset link!')
+
+    Notification::assertSent(ResetPassword::class);
+});
+</code-snippet>
+
+<code-snippet name="Pest Smoke Testing Example" lang="php">
+$pages = visit(['/', '/about', '/contact']);
+
+$pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
+</code-snippet>
+
+
 === inertia-vue/core rules ===
 
 ## Inertia + Vue
@@ -282,46 +392,52 @@ it('has emails', function (string $email) {
 - Vue components must have a single root element.
 - Use `router.visit()` or `<Link>` for navigation instead of traditional links.
 
-<code-snippet lang="vue" name="Inertia Client Navigation">
-    import { Link } from '@inertiajs/vue3'
+<code-snippet name="Inertia Client Navigation" lang="vue">
 
+    import { Link } from '@inertiajs/vue3'
     <Link href="/">Home</Link>
+
 </code-snippet>
 
-- For form handling, use `router.post` and related methods. Do not use regular forms.
 
+=== inertia-vue/v2/forms rules ===
 
-<code-snippet lang="vue" name="Inertia Vue Form Example">
-    <script setup>
-    import { reactive } from 'vue'
-    import { router } from '@inertiajs/vue3'
-    import { usePage } from '@inertiajs/vue3'
+## Inertia + Vue Forms
 
-    const page = usePage()
+<code-snippet name="`<Form>` Component Example" lang="vue">
 
-    const form = reactive({
-      first_name: null,
-      last_name: null,
-      email: null,
-    })
+<Form
+    action="/users"
+    method="post"
+    #default="{
+        errors,
+        hasErrors,
+        processing,
+        progress,
+        wasSuccessful,
+        recentlySuccessful,
+        setError,
+        clearErrors,
+        resetAndClearErrors,
+        defaults,
+        isDirty,
+        reset,
+        submit,
+  }"
+>
+    <input type="text" name="name" />
 
-    function submit() {
-      router.post('/users', form)
-    }
-    </script>
+    <div v-if="errors.name">
+        {{ errors.name }}
+    </div>
 
-    <template>
-        <h1>Create {{ page.modelName }}</h1>
-        <form @submit.prevent="submit">
-            <label for="first_name">First name:</label>
-            <input id="first_name" v-model="form.first_name" />
-            <label for="last_name">Last name:</label>
-            <input id="last_name" v-model="form.last_name" />
-            <label for="email">Email:</label>
-            <input id="email" v-model="form.email" />
-            <button type="submit">Submit</button>
-        </form>
-    </template>
+    <button type="submit" :disabled="processing">
+        {{ processing ? 'Creating...' : 'Create User' }}
+    </button>
+
+    <div v-if="wasSuccessful">User created successfully!</div>
+</Form>
+
 </code-snippet>
 
 
@@ -350,11 +466,39 @@ it('has emails', function (string $email) {
 - If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
 
 
-=== tailwindcss/v3 rules ===
+=== tailwindcss/v4 rules ===
 
-## Tailwind 3
+## Tailwind 4
 
-- Always use Tailwind CSS v3 - verify you're using only classes supported by this version.
+- Always use Tailwind CSS v4 - do not use the deprecated utilities.
+- `corePlugins` is not supported in Tailwind v4.
+- In Tailwind v4, you import Tailwind using a regular CSS `@import` statement, not using the `@tailwind` directives used in v3:
+
+<code-snippet name="Tailwind v4 Import Tailwind Diff" lang="diff">
+   - @tailwind base;
+   - @tailwind components;
+   - @tailwind utilities;
+   + @import "tailwindcss";
+</code-snippet>
+
+
+### Replaced Utilities
+- Tailwind v4 removed deprecated utilities. Do not use the deprecated option - use the replacement.
+- Opacity values are still numeric.
+
+| Deprecated |	Replacement |
+|------------+--------------|
+| bg-opacity-* | bg-black/* |
+| text-opacity-* | text-black/* |
+| border-opacity-* | border-black/* |
+| divide-opacity-* | divide-black/* |
+| ring-opacity-* | ring-black/* |
+| placeholder-opacity-* | placeholder-black/* |
+| flex-shrink-* | shrink-* |
+| flex-grow-* | grow-* |
+| overflow-ellipsis | text-ellipsis |
+| decoration-slice | box-decoration-slice |
+| decoration-clone | box-decoration-clone |
 
 
 === tests rules ===

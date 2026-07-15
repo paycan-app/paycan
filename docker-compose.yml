@@ -1,0 +1,44 @@
+
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paycan-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./storage:/var/www/html/storage
+    networks:
+      - paycan-network
+    environment:
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=database.sqlite
+      - SESSION_DRIVER=file
+      - CACHE_STORE=file
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  webserver:
+    image: nginx:alpine
+    container_name: paycan-webserver
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - paycan-network
+    depends_on:
+      - app
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+networks:
+  paycan-network:
+    driver: bridge

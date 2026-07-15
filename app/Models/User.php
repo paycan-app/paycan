@@ -3,18 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Traits\HasStringId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
-use Laravel\Cashier\Billable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, Billable;
+    use HasApiTokens, HasFactory, HasStringId, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -22,10 +20,10 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'id',
         'name',
         'email',
         'password',
-        'gateway_data',
     ];
 
     /**
@@ -43,51 +41,29 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'gateway_data' => 'array',
+    ];
+
+    public function orders()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'gateway_data' => 'array',
-        ];
+        return $this->hasMany(Order::class);
     }
 
-    /**
-     * Set the user's name with XSS protection.
-     */
-    protected function setNameAttribute($value)
+    public function subscriptions()
     {
-        $this->attributes['name'] = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        return $this->hasMany(Subscription::class);
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
 
-// Add to User class:
-public function socialConnections(): HasMany
-{
-    return $this->hasMany(SocialConnection::class);
-}
-
-/**
- * Get the orders associated with the user.
- */
-public function orders(): HasMany
-{
-    return $this->hasMany(Order::class);
-}
-
-/**
- * Get the subscriptions associated with the user.
- */
-public function subscriptions(): HasMany
-{
-    return $this->hasMany(Subscription::class);
-}
-
-/**
- * Get the transactions associated with the user.
- */
-public function transactions(): HasMany
-{
-    return $this->hasMany(Transaction::class);
-}
+    public function socialConnections()
+    {
+        return $this->hasMany(SocialConnection::class);
+    }
 }

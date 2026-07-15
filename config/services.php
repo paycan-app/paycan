@@ -18,6 +18,13 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
+    // Add Mailgun service credentials
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
@@ -48,7 +55,6 @@ return [
         'mode' => env('PAYPAL_MODE', 'sandbox'), // sandbox or live
         'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
     ],
-
 
     // Social Login
     'google' => [

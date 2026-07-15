@@ -2,17 +2,31 @@
 
 namespace App\Models;
 
+use App\Traits\HasStringId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class ProductPrice extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasStringId, SoftDeletes;
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function ($productPrice) {
+            if (empty($productPrice->slug) && ! empty($productPrice->title)) {
+                $productPrice->slug = Str::slug($productPrice->title);
+            }
+        });
+    }
 
     protected $fillable = [
+        'id',
         'product_id',
         'title',
         'slug',

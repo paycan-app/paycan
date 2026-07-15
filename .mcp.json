@@ -3,15 +3,21 @@
     "laravel-boost": {
       "command": "php",
       "args": [
-        "./artisan",
+        "artisan",
         "boost:mcp"
       ]
     },
-    "shadcn": {
+    "context7": {
       "command": "npx",
       "args": [
-        "shadcn@latest",
-        "mcp"
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "playwright-server": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
       ]
     }
   }

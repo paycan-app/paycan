@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayCan Demo — Gateway Redirect</title>
+  <link rel="icon" href="favicon.ico">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f8fafc; color: #0f172a; min-height: 100vh;
+      display: grid; place-items: center; padding: 2rem; line-height: 1.6;
+    }
+    .panel {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      max-width: 520px; width: 100%; padding: 2.5rem; text-align: center;
+    }
+    .check {
+      width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 1.25rem;
+      background: #ecfdf5; color: #059669; display: grid; place-items: center;
+      font-size: 1.6rem; border: 1px solid #a7f3d0;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 0.5rem; letter-spacing: -0.01em; }
+    p { color: #64748b; font-size: 0.95rem; margin-bottom: 0.5rem; }
+    dl {
+      text-align: left; margin: 1.5rem 0; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 1rem 1.25rem; font-size: 0.9rem; display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1.25rem;
+    }
+    dt { color: #64748b; }
+    dd { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; word-break: break-all; }
+    a.btn {
+      display: inline-block; background: hsl(0 0% 9%); color: #fff; text-decoration: none;
+      font-weight: 600; font-size: 0.95rem; padding: 0.7rem 1.5rem; border-radius: 10px;
+    }
+    a.btn:hover { background: hsl(0 0% 0%); }
+    .note { font-size: 0.825rem; margin-top: 1.25rem; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="check">✓</div>
+    <h1>This is where the payment gateway takes over</h1>
+    <p>
+      In production, <code>checkout_url</code> points to a hosted Stripe or PayPal page.
+      The customer pays there and is redirected back to your app, while PayCan records
+      the order via webhooks.
+    </p>
+    <dl id="details"></dl>
+    <a class="btn" href="index.html">← Back to the demo</a>
+    <p class="note">Demo only — no payment was made and no data left your browser.</p>
+  </div>
+  <script>
+    (function () {
+      var labels = { session: 'Session', gateway: 'Gateway', order: 'Order', total: 'Total', portal: 'Portal session', download: 'Download' };
+      var params = new URLSearchParams(window.location.search);
+      var dl = document.getElementById('details');
+      var hasAny = false;
+      Object.keys(labels).forEach(function (key) {
+        var value = params.get(key);
+        if (!value) { return; }
+        hasAny = true;
+        var dt = document.createElement('dt');
+        dt.textContent = labels[key];
+        var dd = document.createElement('dd');
+        dd.textContent = value;
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      });
+      if (!hasAny) { dl.remove(); }
+    })();
+  </script>
+</body>
+</html>

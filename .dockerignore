@@ -1,0 +1,13 @@
+.git
+.gitignore
+.node_modules
+vendor
+storage/*.log
+bootstrap/cache/*
+public/storage
+.env
+.env.testing
+docker-compose.override.yml
+docker-compose.yml
+Dockerfile
+docker-setup.sh

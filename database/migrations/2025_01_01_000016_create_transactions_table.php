@@ -10,7 +10,13 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
+            // $table->foreignId('user_id')->constrained();
+
+            $table->string('user_id');
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users');
+
             $table->foreignId('order_id')->nullable()->constrained(); // Nullable for subscription payments
             $table->foreignId('subscription_id')->nullable()->constrained(); // Nullable for one-time payments
             $table->string('type'); // charge, refund, subscription_create, subscription_renew, subscription_update, subscription_cancel

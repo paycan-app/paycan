@@ -1,0 +1,269 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "PayCan logo PayCan demo" [ref=e4] [cursor=pointer]:
+        - /url: "#"
+        - img "PayCan logo" [ref=e5]
+        - text: PayCan
+        - generic [ref=e6]: demo
+      - navigation [ref=e7]:
+        - link "Get started" [ref=e8] [cursor=pointer]:
+          - /url: "#get-started"
+        - link "Components" [ref=e9] [cursor=pointer]:
+          - /url: "#components"
+        - link "API playground" [ref=e10] [cursor=pointer]:
+          - /url: "#playground"
+        - link "Docs" [ref=e11] [cursor=pointer]:
+          - /url: "#docs"
+        - link "★ Star on GitHub" [ref=e12] [cursor=pointer]:
+          - /url: https://github.com/paycan-app/paycan
+  - main [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]: Live demo — runs entirely on mock data, no backend or API keys
+      - heading "Add payments to your app in minutes, not weeks" [level=1] [ref=e17]:
+        - text: Add payments to your app
+        - text: in minutes, not weeks
+      - paragraph [ref=e18]: PayCan gives your application a unified API for one-time and recurring payments through Stripe and PayPal — plus drop-in web components for checkout, plans, orders and subscriptions. Everything on this page uses the real SDK.
+      - generic [ref=e19]:
+        - button "▶ Try the checkout modal" [ref=e20] [cursor=pointer]
+        - link "Get started in 3 steps" [ref=e21] [cursor=pointer]:
+          - /url: "#get-started"
+        - link "★ Star us on GitHub" [ref=e22] [cursor=pointer]:
+          - /url: https://github.com/paycan-app/paycan
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - text: Quick start
+        - heading "Up and running in 3 steps" [level=2] [ref=e26]
+        - paragraph [ref=e27]: "One npm package (or a hosted ES module), one tiny backend endpoint, one line to open a checkout. Each step is tagged with where the code runs: Frontend · browser or Backend · your server."
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - generic [ref=e31]: "1"
+            - heading "Install the SDK" [level=3] [ref=e32]
+            - generic [ref=e33]: Frontend · browser
+          - paragraph [ref=e34]: Via npm, or import the hosted ES module straight from your PayCan instance — no build step needed.
+          - generic [ref=e35]:
+            - generic [ref=e36]: Terminal
+            - code [ref=e38]: npm install @paycan/sdk
+            - button "Copy" [ref=e39] [cursor=pointer]
+          - generic [ref=e40]:
+            - generic [ref=e41]: Or hosted — any HTML page
+            - code [ref=e43]: "<script type=\"module\"> import { PayCan } from 'https://pay.yourapp.com/sdk/paycan-sdk.js'; </script>"
+            - button "Copy" [ref=e44] [cursor=pointer]
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]: "2"
+            - heading "Add a token endpoint to your backend" [level=3] [ref=e48]
+            - generic [ref=e49]: Backend · your server
+          - paragraph [ref=e50]:
+            - text: This is the only backend code you need. It runs on
+            - emphasis [ref=e51]: your
+            - text: server, verifies the user against
+            - emphasis [ref=e52]: your
+            - text: login session, and exchanges them for a PayCan user token using your secret API key — which never leaves the server. Never trust a user ID from the request body.
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - button "Node / Express" [ref=e55] [cursor=pointer]
+              - button "Next.js" [ref=e56] [cursor=pointer]
+              - button "Laravel" [ref=e57] [cursor=pointer]
+              - button "Django" [ref=e58] [cursor=pointer]
+            - generic [ref=e60]:
+              - generic [ref=e61]: server.js
+              - code [ref=e63]: "app.post('/api/paycan/token', requireAuth, async (req, res) => { const response = await fetch(`${process.env.PAYCAN_URL}/api/admin/users/sync`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.PAYCAN_API_SECRET, // secret key: backend only! }, body: JSON.stringify({ user_id: req.session.userId, // from YOUR session — not the request body user: { name: req.user.name, email: req.user.email }, }), }); const { token } = await response.json(); res.json({ token }); // return ONLY the token to the browser });"
+              - button "Copy" [ref=e64] [cursor=pointer]
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]: "3"
+            - heading "Initialize and sell" [level=3] [ref=e68]
+            - generic [ref=e69]: Frontend · browser
+          - paragraph [ref=e70]: Point the SDK at your PayCan instance, fetch a token from the endpoint you built in Step 2, and open a checkout with one call. Guests can check out too — no token required.
+          - generic [ref=e71]:
+            - generic [ref=e72]: app.js
+            - code [ref=e74]: "import { PayCan } from '@paycan/sdk'; // apiUrl = your PayCan instance (where the payment platform is hosted) const paycan = new PayCan({ apiUrl: 'https://pay.yourapp.com' }); // The token comes from YOUR backend — the endpoint you built in Step 2. // The browser only ever sees this short-lived user token, never the secret key. // Optional: without it, checkouts still work as guest (email is asked instead). const { token } = await (await fetch('/api/paycan/token')).json(); paycan.setUserToken(token); // One line to sell something paycan.openCheckoutModal('prod_pro', { onSuccess: (checkoutUrl) => (window.location.href = checkoutUrl), });"
+            - button "Copy" [ref=e75] [cursor=pointer]
+          - generic [ref=e76]:
+            - strong [ref=e77]: Where does the token come from?
+            - code [ref=e78]: fetch('/api/paycan/token')
+            - text: calls
+            - emphasis [ref=e79]: your own backend
+            - text: "(Step 2), which authenticates the user via your normal session, then asks PayCan for a user-scoped token using the secret key. The flow is:"
+            - code [ref=e80]: browser → your backend → PayCan → your backend → browser
+            - text: . The token only grants access to that user's own data and refreshes automatically before it expires.
+          - generic [ref=e81]:
+            - strong [ref=e82]: Where does this code go?
+            - text: Create the
+            - code [ref=e83]: PayCan
+            - text: instance once, at app startup. Call
+            - code [ref=e84]: setUserToken()
+            - text: right after your login flow succeeds — or on page load when the user already has a session. It must run
+            - emphasis [ref=e85]: before any account action
+            - text: (orders, subscriptions, transactions); doing it eagerly at login is better than lazily before a payment, so the token is ready the moment the user clicks "Buy". If they aren't signed in, skip it — the checkout modal falls back to guest mode and asks for an email instead.
+    - generic [ref=e87]:
+      - generic [ref=e88]:
+        - text: Web components
+        - heading "Drop-in UI — try each one live Frontend · browser" [level=2] [ref=e89]
+        - paragraph [ref=e90]:
+          - text: Framework-agnostic modals rendered in a Shadow DOM, so your page styles are never affected. Fully responsive, with
+          - code [ref=e91]: light
+          - text: ","
+          - code [ref=e92]: dark
+          - text: and
+          - code [ref=e93]: auto
+          - text: themes.
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - text: Theme
+          - combobox "Theme" [ref=e96]:
+            - option "light" [selected]
+            - option "dark"
+            - option "auto"
+        - generic [ref=e97]:
+          - generic [ref=e98]:
+            - checkbox "Signed in (demo user)" [checked]
+          - text: Signed in (demo user)
+        - generic [ref=e100]: Turn the switch off to see guest checkout — the modal asks for an email instead.
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - heading "CheckoutModal" [level=3] [ref=e104]:
+              - code [ref=e105]: CheckoutModal
+            - generic [ref=e106]: guest OK
+          - paragraph [ref=e107]: Price + gateway selection and checkout session creation for a product. Shows an email field automatically for guests.
+          - generic [ref=e108]:
+            - code [ref=e110]: "paycan.openCheckoutModal('prod_pro', { theme: 'auto', onSuccess: (url) => (location.href = url), });"
+            - button "Copy" [ref=e111] [cursor=pointer]
+          - generic [ref=e112]:
+            - button "Open for a product" [ref=e113] [cursor=pointer]
+            - button "Open for one price" [ref=e114] [cursor=pointer]
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - heading "ProductsModal" [level=3] [ref=e117]:
+              - code [ref=e118]: ProductsModal
+            - generic [ref=e119]: guest OK
+          - paragraph [ref=e120]:
+            - text: "Browse products or plans and jump straight into checkout. Filter by type:"
+            - code [ref=e121]: subscription
+            - text: ","
+            - code [ref=e122]: digital
+            - text: ","
+            - code [ref=e123]: service
+            - text: ","
+            - code [ref=e124]: physical
+            - text: .
+          - generic [ref=e125]:
+            - code [ref=e127]: "paycan.openProductsModal({ type: 'subscription', // optional filter theme: 'auto', });"
+            - button "Copy" [ref=e128] [cursor=pointer]
+          - generic [ref=e129]:
+            - button "All products" [ref=e130] [cursor=pointer]
+            - button "Subscriptions only" [ref=e131] [cursor=pointer]
+        - generic [ref=e132]:
+          - generic [ref=e133]:
+            - heading "SubscriptionsModal" [level=3] [ref=e134]:
+              - code [ref=e135]: SubscriptionsModal
+            - generic [ref=e136]: auth
+          - paragraph [ref=e137]: List, cancel, resume and change plans. Try cancelling the active plan — the mock data updates live.
+          - generic [ref=e138]:
+            - code [ref=e140]: "import { SubscriptionsModal } from '@paycan/sdk'; new SubscriptionsModal(paycan, { theme: 'auto' }).open();"
+            - button "Copy" [ref=e141] [cursor=pointer]
+          - button "Open subscriptions" [ref=e143] [cursor=pointer]
+        - generic [ref=e144]:
+          - generic [ref=e145]:
+            - heading "OrdersModal" [level=3] [ref=e146]:
+              - code [ref=e147]: OrdersModal
+            - generic [ref=e148]: auth
+          - paragraph [ref=e149]: Order history with status, totals and gateway. Complete a demo checkout first and your new order appears here.
+          - generic [ref=e150]:
+            - code [ref=e152]: "import { OrdersModal } from '@paycan/sdk'; new OrdersModal(paycan, { theme: 'auto' }).open();"
+            - button "Copy" [ref=e153] [cursor=pointer]
+          - button "Open orders" [ref=e155] [cursor=pointer]
+        - generic [ref=e156]:
+          - generic [ref=e157]:
+            - heading "TransactionsModal" [level=3] [ref=e158]:
+              - code [ref=e159]: TransactionsModal
+            - generic [ref=e160]: auth
+          - paragraph [ref=e161]: Payment history — charges and refunds across all gateways, linked to their orders.
+          - generic [ref=e162]:
+            - code [ref=e164]: "import { TransactionsModal } from '@paycan/sdk'; new TransactionsModal(paycan, { theme: 'auto' }).open();"
+            - button "Copy" [ref=e165] [cursor=pointer]
+          - button "Open transactions" [ref=e167] [cursor=pointer]
+    - generic [ref=e169]:
+      - generic [ref=e170]:
+        - text: API playground
+        - heading "Prefer your own UI? Use the API client Frontend · browser" [level=2] [ref=e171]
+        - paragraph [ref=e172]: Every modal above is built on the same typed API client you get with the SDK — filtering, sorting, includes and pagination included. Click a call to run it against the mock API.
+      - generic [ref=e173]:
+        - navigation [ref=e174]:
+          - button "List products" [ref=e175] [cursor=pointer]
+          - button "List my orders" [ref=e176] [cursor=pointer]
+          - button "Active subscriptions" [ref=e177] [cursor=pointer]
+          - button "Preview a checkout" [ref=e178] [cursor=pointer]
+          - button "Create checkout session" [ref=e179] [cursor=pointer]
+        - generic [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]: Public — no auth needed
+            - code [ref=e184]: "const products = await paycan.products.list({ include: 'prices' });"
+            - button "Copy" [ref=e185] [cursor=pointer]
+          - generic [ref=e186]: // Click "Run" to execute the selected call against the mock API
+          - generic [ref=e187]:
+            - button "▶ Run" [ref=e188] [cursor=pointer]
+            - generic [ref=e189]:
+              - text: "Tip:"
+              - code [ref=e190]: window.paycan
+              - text: is exposed in this page — try calls in the browser console too.
+    - generic [ref=e192]:
+      - heading "PayCan is open source — and stars keep it moving ⭐" [level=2] [ref=e193]
+      - paragraph [ref=e194]: If this demo saved you an afternoon of payment plumbing, a GitHub star is the single most helpful thing you can do. It's how new developers find the project and how we prioritize the roadmap.
+      - generic [ref=e195]:
+        - link "★ Star paycan-app/paycan" [ref=e196] [cursor=pointer]:
+          - /url: https://github.com/paycan-app/paycan
+        - link "Request a feature" [ref=e197] [cursor=pointer]:
+          - /url: https://github.com/paycan-app/paycan/issues
+    - generic [ref=e199]:
+      - generic [ref=e200]:
+        - heading "How this demo works" [level=4] [ref=e201]
+        - paragraph [ref=e202]:
+          - text: This page is fully standalone — the real SDK build is vendored at
+          - code [ref=e203]: vendor/paycan-sdk.js
+          - text: (identical to the one your own PayCan instance serves at
+          - code [ref=e204]: /sdk/paycan-sdk.js
+          - text: ). A tiny fetch interceptor (
+          - code [ref=e205]: mock-api.js
+          - text: ) answers all
+          - code [ref=e206]: /api/*
+          - text: calls with in-memory data — inspect it via
+          - code [ref=e207]: window.PayCanMock.db
+          - text: . No backend, build step, or server required — this whole folder can be copied straight to GitHub Pages or any static host.
+      - generic [ref=e208]:
+        - heading "Keep reading" [level=4] [ref=e209]
+        - list [ref=e210]:
+          - listitem [ref=e211]:
+            - text: Getting started guide —
+            - code [ref=e212]: sdk/front/GETTING_STARTED.md
+          - listitem [ref=e213]:
+            - text: Modal components —
+            - code [ref=e214]: CHECKOUT_MODAL_README.md
+          - listitem [ref=e215]:
+            - text: Full API reference —
+            - code [ref=e216]: API_STRUCTURE.md
+          - listitem [ref=e217]:
+            - text: Framework examples —
+            - code [ref=e218]: sdk/front/examples/
+      - generic [ref=e219]:
+        - heading "Running the full app instead?" [level=4] [ref=e220]
+        - paragraph [ref=e221]:
+          - text: This page is a standalone, mock-data demo — copy the
+          - code [ref=e222]: demo/
+          - text: folder anywhere (including GitHub Pages) and it works with no backend at all.
+        - paragraph [ref=e223]:
+          - text: If you have a full PayCan instance running, it also ships two demos against your
+          - emphasis [ref=e224]: real
+          - text: "API and database:"
+          - code [ref=e225]: /checkout-modal-demo
+          - text: and
+          - code [ref=e226]: /account-modals-demo
+          - text: .
+        - paragraph [ref=e227]:
+          - text: Enjoying PayCan?
+          - link "★ Star the repo" [ref=e228] [cursor=pointer]:
+            - /url: https://github.com/paycan-app/paycan
+          - text: — it matters to us.

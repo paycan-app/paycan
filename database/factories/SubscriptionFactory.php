@@ -14,9 +14,12 @@ class SubscriptionFactory extends Factory
 
     public function definition(): array
     {
+        $productPrice = ProductPrice::factory()->monthly()->create();
+
         return [
             'user_id' => User::factory(),
-            'product_price_id' => ProductPrice::factory()->monthly(),
+            'product_id' => $productPrice->product_id,
+            'product_price_id' => $productPrice->id,
             'order_id' => Order::factory(),
             'title' => fake()->words(3, true),
             'status' => fake()->randomElement(Subscription::getStatuses()),

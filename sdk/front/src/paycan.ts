@@ -1,0 +1,384 @@
+/**
+ * PayCan SDK - Main Client
+ *
+ * Official JavaScript SDK for PayCan payment integration
+ */
+
+import { HttpClient } from './http-client';
+import { Orders } from './resources/orders';
+import { Subscriptions } from './resources/subscriptions';
+import { Checkout } from './resources/checkout';
+import { Products } from './resources/products';
+import { Transactions } from './resources/transactions';
+import { CheckoutModal, type CheckoutModalOptions } from './components/checkout-modal';
+import { ProductsModal, type ProductsModalOptions } from './components/products-modal';
+import type { PayCanConfig, AuthResponse, AuthenticationConfig, User } from './types';
+
+export class PayCan {
+  private http: HttpClient;
+
+  /** Orders API */
+  public orders: Orders;
+
+  /** Subscriptions API */
+  public subscriptions: Subscriptions;
+
+  /** Checkout API */
+  public checkout: Checkout;
+
+  /** Products API */
+  public products: Products;
+
+  /** Transactions API */
+  public transactions: Transactions;
+
+  /**
+   * Create a new PayCan instance
+   *
+   * @example
+   * const paycan = new PayCan({
+   *   apiUrl: 'https://pay.yourapp.com',
+   *   debug: true
+   * });
+   */
+  constructor(config: PayCanConfig) {
+    this.validateConfig(config);
+
+    this.http = new HttpClient(config);
+    this.orders = new Orders(this.http, config);
+    this.subscriptions = new Subscriptions(this.http, config);
+    this.products = new Products(this.http);
+    this.transactions = new Transactions(this.http);
+    this.checkout = new Checkout(this.http, this.orders, this.subscriptions);
+  }
+
+  /**
+   * Get current user information
+   *
+   * @example
+   * const { user } = await paycan.me();
+   */
+  async me(): Promise<{ user: User }> {
+    return this.http.get<{ user: User }>('/api/user/me');
+  }
+
+  /**
+   * Set the PayCan user token directly
+   *
+   * This is the primary method for authentication. Your app should:
+   * 1. Authenticate the user in YOUR system
+   * 2. Call your backend to get a PayCan token for this user
+   * 3. Pass the token to this method
+   *
+   * @example
+   * // Get token from your backend however you want
+   * const response = await fetch('/api/get-paycan-token');
+   * const { token } = await response.json();
+   *
+   * // Set the token
+   * paycan.setUserToken(token);
+   *
+   * // Now you can make authenticated requests
+   * const orders = await paycan.orders.list();
+   */
+  setUserToken(token: string): void {
+    if (!token) {
+      throw new Error('Token is required');
+    }
+
+    this.http.setToken(token);
+    this.log('User token set successfully');
+  }
+
+  /**
+   * Helper method to authenticate and get token from your backend
+   *
+   * This is optional - you can use setUserToken() instead if you prefer
+   * to handle authentication yourself.
+   *
+   * @example
+   * // Option 1: Bearer token (JWT in Authorization header)
+   * await paycan.authenticate({
+   *   endpoint: '/api/paycan/token',
+   *   type: 'bearer',
+   *   headers: { 'Authorization': `Bearer ${yourJWT}` }
+   * });
+   *
+   * @example
+   * // Option 2: Cookie-based (sends cookies automatically)
+   * await paycan.authenticate({
+   *   endpoint: '/api/paycan/token',
+   *   type: 'cookie'
+   * });
+   *
+   * @example
+   * // Option 3: Custom authentication
+   * await paycan.authenticate({
+   *   endpoint: '/api/paycan/token',
+   *   type: 'custom',
+   *   headers: { 'X-Custom-Auth': 'your-value' }
+   * });
+   */
+  async authenticate(config: AuthenticationConfig): Promise<AuthResponse> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...config.headers,
+      };
+
+      const fetchOptions: RequestInit = {
+        method: 'POST',
+        headers,
+      };
+
+      // Add credentials for cookie-based auth
+      if (config.type === 'cookie') {
+        fetchOptions.credentials = 'include';
+      }
+
+      // Add body data if provided
+      if (config.data) {
+        fetchOptions.body = JSON.stringify(config.data);
+      }
+
+      const response = await fetch(config.endpoint, fetchOptions);
+
+      if (!response.ok) {
+        throw new Error(`Authentication failed: ${response.statusText}`);
+      }
+
+      const data: AuthResponse = await response.json();
+
+      if (!data.token) {
+        throw new Error('No token received from auth endpoint');
+      }
+
+      this.http.setToken(data.token);
+
+      this.log('User authenticated successfully');
+
+      return data;
+    } catch (error) {
+      this.log('Authentication error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user is authenticated
+   *
+   * @example
+   * if (paycan.isAuthenticated()) {
+   *   // User is logged in
+   * }
+   */
+  isAuthenticated(): boolean {
+    return this.http.getToken() !== null;
+  }
+
+  /**
+   * Get current token (useful for debugging)
+   */
+  getToken(): string | null {
+    return this.http.getToken();
+  }
+
+  /**
+   * Logout the user by clearing the authentication token
+   *
+   * @example
+   * paycan.logout();
+   */
+  logout(): void {
+    this.http.clearToken();
+
+    // Clear resource caches
+    this.orders.clearCache();
+    this.subscriptions.clearCache();
+  
+    // Clear any SDK localStorage keys
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        try {
+            Object.keys(localStorage).forEach((key) => {
+                if (key.startsWith('paycan_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch {}
+    }
+  
+    this.log('User logged out');
+  }
+
+  /**
+   * Make a GET request to the API
+   * Exposed for use by modal components
+   */
+  async get<T = any>(url: string): Promise<T> {
+    return this.http.get<T>(url);
+  }
+
+  /**
+   * Make a POST request to the API
+   * Exposed for use by modal components
+   */
+  async post<T = any>(url: string, data: any): Promise<T> {
+    return this.http.post<T>(url, data);
+  }
+
+  /**
+   * Open checkout modal for a product
+   *
+   * This will display a modal with all available prices for the product,
+   * allowing the user to select a price and payment gateway before checkout.
+   *
+   * @example
+   * // Basic usage
+   * paycan.openCheckoutModal(123);
+   *
+   * @example
+   * // With options
+   * paycan.openCheckoutModal(123, {
+   *   theme: 'dark',
+   *   onSuccess: (checkoutUrl) => {
+   *     console.log('Redirecting to:', checkoutUrl);
+   *     window.location.href = checkoutUrl;
+   *   },
+   *   onCancel: () => {
+   *     console.log('User cancelled checkout');
+   *   },
+   *   onError: (error) => {
+   *     console.error('Checkout error:', error);
+   *   }
+   * });
+   */
+  openCheckoutModal(productId: number | string, options: Partial<CheckoutModalOptions> = {}): CheckoutModal {
+    const modalOptions: CheckoutModalOptions = {
+      productId,
+      theme: options.theme || 'light',
+      onSuccess: options.onSuccess,
+      onCancel: options.onCancel,
+      onError: options.onError,
+    };
+
+    const modal = new CheckoutModal(this, modalOptions);
+    modal.open();
+
+    this.log('Opening checkout modal for product:', productId);
+
+    return modal;
+  }
+
+  /**
+   * Open checkout modal for a specific price
+   *
+   * This will display a modal pre-configured for a specific price,
+   * allowing the user to select a payment gateway before checkout.
+   *
+   * @example
+   * // Basic usage
+   * paycan.openCheckoutModalPrice(456);
+   *
+   * @example
+   * // With options and callbacks
+   * paycan.openCheckoutModalPrice(456, {
+   *   theme: 'light',
+   *   onSuccess: (checkoutUrl) => {
+   *     // Custom success handler
+   *     window.location.href = checkoutUrl;
+   *   },
+   *   onCancel: () => {
+   *     console.log('Checkout cancelled');
+   *   }
+   * });
+   */
+  openCheckoutModalPrice(priceId: number | string, options: Partial<CheckoutModalOptions> = {}): CheckoutModal {
+    const modalOptions: CheckoutModalOptions = {
+      priceId,
+      theme: options.theme || 'light',
+      onSuccess: options.onSuccess,
+      onCancel: options.onCancel,
+      onError: options.onError,
+    };
+
+    const modal = new CheckoutModal(this, modalOptions);
+    modal.open();
+
+    this.log('Opening checkout modal for price:', priceId);
+
+    return modal;
+  }
+
+  /**
+   * Open products modal to browse and purchase products
+   *
+   * This will display a modal with all available products/plans,
+   * allowing the user to browse and select a product to purchase.
+   * When a product is selected, it automatically opens the checkout modal.
+   *
+   * @example
+   * // Basic usage - show all products
+   * paycan.openProductsModal();
+   *
+   * @example
+   * // Show only subscription products
+   * paycan.openProductsModal({
+   *   type: 'subscription',
+   *   theme: 'dark'
+   * });
+   *
+   * @example
+   * // For changing subscription plans
+   * paycan.openProductsModal({
+   *   type: 'subscription',
+   *   currentSubscriptionId: 123,
+   *   onProductSelected: (product) => {
+   *     console.log('Selected product:', product);
+   *   }
+   * });
+   */
+  openProductsModal(options: Partial<ProductsModalOptions> = {}): ProductsModal {
+    const modalOptions: ProductsModalOptions = {
+      theme: options.theme || 'auto',
+      type: options.type,
+      currentPriceId: options.currentPriceId,
+      subscriptionId: options.subscriptionId,
+      onClose: options.onClose,
+      onError: options.onError,
+      onProductSelected: options.onProductSelected,
+    };
+
+    const modal = new ProductsModal(this, modalOptions);
+    modal.open();
+
+    this.log('Opening products modal', options.type ? `for type: ${options.type}` : '');
+
+    return modal;
+  }
+
+  /**
+   * Validate configuration
+   */
+  private validateConfig(config: PayCanConfig): void {
+    if (!config.apiUrl) {
+      throw new Error('PayCan: apiUrl is required');
+    }
+
+    // Ensure URL doesn't have trailing slash
+    config.apiUrl = config.apiUrl.replace(/\/$/, '');
+  }
+
+  /**
+   * Debug logging
+   */
+  private log(...args: any[]): void {
+    const config = this.http['config'];
+    if (config.debug) {
+      console.log('[PayCan SDK]', ...args);
+    }
+  }
+
+  async refreshToken(): Promise<void> {
+    await this.http.refreshToken();
+  }
+}

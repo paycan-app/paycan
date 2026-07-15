@@ -12,7 +12,7 @@ it('can list orders with pagination for authenticated user only', function () {
     Order::factory()->count(2)->create(['user_id' => $user->id]);
     Order::factory()->count(3)->create(['user_id' => $otherUser->id]); // Should not appear
 
-    $response = $this->getJson('/api/query/orders');
+    $response = $this->getJson('/api/user/orders');
 
     $response->assertSuccessful()
         ->assertJsonStructure([
@@ -43,7 +43,7 @@ it('can filter orders by status for authenticated user only', function () {
     Order::factory()->create(['status' => 'completed', 'user_id' => $user->id]);
     Order::factory()->create(['status' => 'pending', 'user_id' => $otherUser->id]); // Should not appear
 
-    $response = $this->getJson('/api/query/orders?filter[status]=pending');
+    $response = $this->getJson('/api/user/orders?filter[status]=pending');
 
     $response->assertSuccessful();
     $orders = $response->json('data');
@@ -58,14 +58,13 @@ it('can include relationships', function () {
 
     $order = Order::factory()->create(['user_id' => $user->id]);
 
-    $response = $this->getJson('/api/query/orders?include=user,productPrice');
+    $response = $this->getJson('/api/user/orders?include=productPrice');
 
     $response->assertSuccessful()
         ->assertJsonStructure([
             'data' => [
                 '*' => [
                     'id',
-                    'user',
                     'product_price',
                 ],
             ],
@@ -79,7 +78,7 @@ it('can sort orders by created_at', function () {
     $oldOrder = Order::factory()->create(['user_id' => $user->id, 'created_at' => now()->subDays(2)]);
     $newOrder = Order::factory()->create(['user_id' => $user->id, 'created_at' => now()]);
 
-    $response = $this->getJson('/api/query/orders?sort=-created_at');
+    $response = $this->getJson('/api/user/orders?sort=-created_at');
 
     $response->assertSuccessful();
     $orders = $response->json('data');
@@ -87,7 +86,7 @@ it('can sort orders by created_at', function () {
 });
 
 it('requires authentication', function () {
-    $response = $this->getJson('/api/query/orders');
+    $response = $this->getJson('/api/user/orders');
 
     $response->assertUnauthorized();
 });
@@ -98,13 +97,15 @@ it('can show single order with includes for own order', function () {
 
     $order = Order::factory()->create(['user_id' => $user->id]);
 
-    $response = $this->getJson("/api/query/orders/{$order->id}?include=productPrice");
+    $response = $this->getJson("/api/user/orders/{$order->id}?include=productPrice");
 
     $response->assertSuccessful()
         ->assertJsonStructure([
-            'id',
-            'order_number',
-            'product_price',
+            'data' => [
+                'id',
+                'order_number',
+                'product_price',
+            ],
         ]);
 });
 
@@ -115,7 +116,7 @@ it('cannot access other users orders', function () {
 
     $otherOrder = Order::factory()->create(['user_id' => $otherUser->id]);
 
-    $response = $this->getJson("/api/query/orders/{$otherOrder->id}");
+    $response = $this->getJson("/api/user/orders/{$otherOrder->id}");
 
-    $response->assertForbidden();
+    $response->assertNotFound();
 });

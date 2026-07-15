@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Routing\Controller as BaseController;
-
-abstract class Controller extends BaseController
+/**
+ * Base controller for all application controllers.
+ *
+ * For API documentation, see:
+ * - Admin API: AdminApiController
+ * - User API: UserApiController
+ */
+abstract class Controller
 {
-    use AuthorizesRequests, ValidatesRequests;
+    //
 }

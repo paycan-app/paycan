@@ -1,0 +1,35 @@
+[     131ms] [INFO] %c PayCan demo %c All /api/* requests are answered by mock-api.js — no backend involved. Explore the dataset via window.PayCanMock.db background:#4f46e5;color:#fff;border-radius:3px;padding:2px 6px;font-weight:bold; color:inherit; @ http://127.0.0.1:8900/mock-api.js:536
+[     179ms] [LOG] [PayCan SDK] Token set (no expiry - non-JWT token) @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[     179ms] [LOG] [PayCan SDK] User token set successfully @ http://127.0.0.1:8900/vendor/paycan-sdk.js:3676
+[   35695ms] [LOG] [PayCan SDK] Opening checkout modal for product: prod_pro @ http://127.0.0.1:8900/vendor/paycan-sdk.js:3676
+[   35695ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/me @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   36197ms] [INFO] [PayCan Mock] GET /api/user/me → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   36200ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/checkout/preview?product_id=prod_pro&quantity=1 @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   36597ms] [INFO] [PayCan Mock] GET /api/user/checkout/preview → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   39877ms] [LOG] [PayCan SDK] Opening checkout modal for price: price_ebook @ http://127.0.0.1:8900/vendor/paycan-sdk.js:3676
+[   39877ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/me @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   40238ms] [INFO] [PayCan Mock] GET /api/user/me → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   40238ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/checkout/preview?product_price_id=price_ebook&quantity=1 @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   40639ms] [INFO] [PayCan Mock] GET /api/user/checkout/preview → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   44910ms] [LOG] [PayCan SDK] Token cleared @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   44911ms] [LOG] [PayCan SDK] User logged out @ http://127.0.0.1:8900/vendor/paycan-sdk.js:3676
+[   47078ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/checkout/preview?product_price_id=price_ebook&quantity=1 @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   47079ms] [LOG] [PayCan SDK] Opening checkout modal for price: price_ebook @ http://127.0.0.1:8900/vendor/paycan-sdk.js:3676
+[   47370ms] [INFO] [PayCan Mock] GET /api/user/checkout/preview → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   50342ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/checkout/preview?product_id=prod_pro&quantity=1 @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   50342ms] [LOG] [PayCan SDK] Opening checkout modal for product: prod_pro @ http://127.0.0.1:8900/vendor/paycan-sdk.js:3676
+[   50656ms] [INFO] [PayCan Mock] GET /api/user/checkout/preview → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   53927ms] [LOG] [PayCan SDK] Token set (no expiry - non-JWT token) @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   53927ms] [LOG] [PayCan SDK] User token set successfully @ http://127.0.0.1:8900/vendor/paycan-sdk.js:3676
+[   58212ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/orders?per_page=5&sort=-created_at @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   58581ms] [INFO] [PayCan Mock] GET /api/user/orders → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   59827ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/subscriptions @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   60083ms] [INFO] [PayCan Mock] GET /api/user/subscriptions → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   68144ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/checkout/preview?product_id=prod_pro&quantity=2 @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   68625ms] [INFO] [PayCan Mock] GET /api/user/checkout/preview → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   68843ms] [LOG] [PayCan SDK] POST http://127.0.0.1:8900/api/user/checkout @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   69258ms] [INFO] [PayCan Mock] POST /api/user/checkout → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   70143ms] [LOG] [PayCan SDK] GET http://127.0.0.1:8900/api/user/checkout/preview?product_id=prod_pro&quantity=2 @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   70601ms] [INFO] [PayCan Mock] GET /api/user/checkout/preview → 200 @ http://127.0.0.1:8900/mock-api.js:529
+[   79226ms] [LOG] [PayCan SDK] POST http://127.0.0.1:8900/api/user/checkout @ http://127.0.0.1:8900/vendor/paycan-sdk.js:255
+[   79707ms] [INFO] [PayCan Mock] POST /api/user/checkout → 200 @ http://127.0.0.1:8900/mock-api.js:529

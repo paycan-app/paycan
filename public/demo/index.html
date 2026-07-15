@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // Some servers (e.g. PHP's built-in server behind `php artisan serve`) serve
+    // this directory index at /demo without redirecting to /demo/, which breaks
+    // every relative URL below. Normalize before any asset resolves.
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+      location.replace(location.pathname + '/' + location.search + location.hash);
+    }
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayCan — Developer Demo</title>
+  <meta name="description" content="Live demo of the PayCan SDK web components and API. Runs entirely on mock data — no backend or API keys needed.">
+  <link rel="icon" href="favicon.ico">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: hsl(0 0% 9%);
+      --accent-dark: hsl(0 0% 0%);
+      --ink: hsl(0 0% 3.9%);
+      --muted: hsl(0 0% 45.1%);
+      --border: hsl(0 0% 89.8%);
+      --soft: hsl(0 0% 96.1%);
+      --surface: #ffffff;
+      --bg: hsl(0 0% 98%);
+      --code-bg: hsl(0 0% 7%);
+      --code-ink: hsl(0 0% 90%);
+      --green: #059669;
+      --amber: #b45309;
+      --blue: #2563eb;
+      --purple: #7c3aed;
+      --gold: #ca8a04;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    code, pre { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+
+    .wrap { max-width: 1060px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* ---------- Header ---------- */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255, 255, 255, 0.9);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav { display: flex; align-items: center; gap: 1.5rem; height: 60px; }
+    .logo { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.1rem; color: var(--ink); text-decoration: none; }
+    .logo-mark { width: 28px; height: 28px; border-radius: 8px; object-fit: cover; display: block; }
+    .logo-demo { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    .nav-links { display: flex; gap: 1.25rem; margin-left: auto; align-items: center; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.925rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--ink); }
+    .star-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: var(--accent); color: #fff !important; border-radius: 8px;
+      padding: 0.4rem 0.9rem; font-size: 0.85rem !important; font-weight: 600;
+    }
+    .star-link:hover { background: var(--accent-dark); color: #fff !important; }
+    .star-ico { color: var(--gold); }
+
+    /* ---------- Hero ---------- */
+    .hero { padding: 4.5rem 0 3.5rem; text-align: center; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--surface); color: var(--ink);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.3rem 0.9rem; font-size: 0.825rem; font-weight: 600; margin-bottom: 1.5rem;
+    }
+    .hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    h1 {
+      font-size: clamp(2.1rem, 5vw, 3.2rem); line-height: 1.15; letter-spacing: -0.02em;
+      margin-bottom: 1rem; font-weight: 800;
+    }
+    h1 .grad {
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero p { max-width: 620px; margin: 0 auto 2rem; color: var(--muted); font-size: 1.15rem; }
+    .hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      border: none; cursor: pointer; text-decoration: none;
+      font-size: 0.95rem; font-weight: 600;
+      padding: 0.7rem 1.4rem; border-radius: 10px;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }
+    .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .btn-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: hsl(0 0% 70%); transform: translateY(-1px); }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+    .btn.needs-auth { opacity: 0.55; }
+
+    /* ---------- Sections ---------- */
+    section { padding: 3rem 0; }
+    .section-head { margin-bottom: 2rem; }
+    .kicker {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      color: var(--muted); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .kicker::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--kicker-color, var(--blue)); }
+    .kicker-blue { --kicker-color: var(--blue); }
+    .kicker-purple { --kicker-color: var(--purple); }
+    .kicker-gold { --kicker-color: var(--gold); }
+    h2 { font-size: 1.8rem; letter-spacing: -0.01em; margin: 0.25rem 0 0.5rem; }
+    .section-head p { color: var(--muted); max-width: 640px; }
+    .install-note {
+      margin-top: 1rem; max-width: 640px;
+      background: hsl(217 91% 97%); border: 1px solid hsl(217 91% 88%); border-left: 3px solid var(--blue);
+      border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.875rem; color: hsl(217 40% 30%);
+    }
+    .install-note code {
+      background: #fff; border: 1px solid hsl(217 91% 85%); color: var(--blue);
+      padding: 0.05rem 0.35rem; border-radius: 4px; font-size: 0.85em;
+    }
+
+    /* ---------- Code blocks ---------- */
+    .code-block {
+      position: relative;
+      background: var(--code-bg); color: var(--code-ink);
+      border-radius: 10px; padding: 1rem 1.1rem;
+      font-size: 0.83rem; line-height: 1.55;
+      overflow-x: auto; margin: 0.75rem 0;
+    }
+    .code-block pre { white-space: pre; }
+    .code-label {
+      display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: hsl(0 0% 60%); margin-bottom: 0.4rem;
+    }
+    .copy-btn {
+      position: absolute; top: 0.6rem; right: 0.6rem;
+      background: rgba(255, 255, 255, 0.1); color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;
+      font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.6rem; cursor: pointer;
+    }
+    .copy-btn:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+    .copy-btn.copied { background: var(--green); border-color: var(--green); color: #fff; }
+
+    /* ---------- Steps ---------- */
+    .steps { display: grid; gap: 1.25rem; }
+    .step {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem 1.75rem;
+    }
+    .step-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem; flex-wrap: wrap; }
+    .env-badge {
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 0.18rem 0.65rem; border-radius: 999px; white-space: nowrap;
+    }
+    .env-front { background: hsl(217 91% 96%); color: var(--blue); border: 1px solid hsl(217 91% 85%); }
+    .env-back { background: hsl(217 91% 96%); color: var(--blue); border: 1px solid hsl(262 83% 88%); }
+    .step-note {
+      background: var(--soft); border: 1px solid var(--border); border-radius: 10px;
+      padding: 0.7rem 1rem; font-size: 0.875rem; color: hsl(0 0% 25%); margin-top: 0.75rem;
+    }
+    .step-note code { background: #fff; border: 1px solid var(--border); padding: 0.05rem 0.35rem; border-radius: 4px; }
+
+    /* ---------- Tabs ---------- */
+    .tab-list { display: flex; gap: 0.4rem; margin-top: 0.75rem; flex-wrap: wrap; }
+    .tab-btn {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.4rem 0.9rem; font-size: 0.85rem; font-weight: 600; color: var(--muted);
+      cursor: pointer;
+    }
+    .tab-btn:hover { color: var(--ink); border-color: hsl(0 0% 70%); }
+    .tab-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--step-color, var(--accent)); color: #fff;
+      display: grid; place-items: center; font-weight: 700; font-size: 0.9rem;
+    }
+
+    .step h3 { font-size: 1.1rem; }
+    .step > p { color: var(--muted); font-size: 0.925rem; margin-bottom: 0.25rem; }
+
+    /* ---------- Component cards ---------- */
+    .toolbar {
+      display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.9rem 1.25rem; margin-bottom: 1.5rem;
+    }
+    .toolbar label { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
+    .toolbar select {
+      border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem 0.6rem;
+      font-size: 0.9rem; background: #fff; color: var(--ink);
+    }
+    .switch { position: relative; width: 42px; height: 24px; display: inline-block; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; cursor: pointer; border-radius: 999px;
+      background: #cbd5e1; transition: background 0.2s;
+    }
+    .slider::before {
+      content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px;
+      border-radius: 50%; background: #fff; transition: transform 0.2s;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .switch input:checked + .slider { background: var(--green); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .toolbar-hint { color: var(--muted); font-size: 0.825rem; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.4rem; display: flex; flex-direction: column; gap: 0.6rem;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06); border-color: hsl(0 0% 70%); }
+    .card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .card h3 { font-size: 1.05rem; }
+    .card h3 code { font-size: 0.95em; }
+    .badge {
+      font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge-public { background: #ecfdf5; color: var(--green); border: 1px solid #a7f3d0; }
+    .badge-auth { background: #fffbeb; color: var(--amber); border: 1px solid #fde68a; }
+    .card p { color: var(--muted); font-size: 0.9rem; flex-grow: 1; }
+    .card .code-block { font-size: 0.78rem; margin: 0; padding-right: 4.25rem; }
+    .card-actions { display: flex; gap: 0.5rem; }
+
+    /* ---------- Checkout result panel ---------- */
+    .result-panel {
+      margin-top: 1.5rem; border: 1px solid #a7f3d0; background: #ecfdf5;
+      border-radius: var(--radius); padding: 1.1rem 1.4rem; font-size: 0.925rem;
+    }
+    .result-panel strong { color: var(--green); }
+    .result-panel a { color: var(--ink); word-break: break-all; }
+    .result-hint { color: var(--muted); font-size: 0.85rem; }
+
+    /* ---------- Star CTA band ---------- */
+    .star-band {
+      background: var(--accent); color: #fff; border-radius: var(--radius);
+      padding: 2.25rem 2rem; text-align: center; margin-top: 3rem;
+    }
+    .star-band h2 { color: #fff; margin-bottom: 0.35rem; }
+    .star-band p { color: hsl(0 0% 70%); max-width: 560px; margin: 0 auto 1.4rem; }
+    .btn-invert { background: var(--gold); color: #fff; }
+    .btn-invert:hover { background: hsl(43 96% 34%); transform: translateY(-1px); }
+    .btn-invert .star-ico { color: #fff; }
+    .star-band .btn-ghost { background: transparent; color: #fff; border: 1px solid hsl(0 0% 40%); }
+    .star-band .btn-ghost:hover { border-color: #fff; transform: translateY(-1px); }
+
+    /* ---------- Playground ---------- */
+    .playground {
+      display: grid; grid-template-columns: 240px 1fr; gap: 1.25rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.4rem;
+    }
+    .playground-nav { display: flex; flex-direction: column; gap: 0.4rem; }
+    .playground-nav button {
+      text-align: left; background: none; border: 1px solid transparent; border-radius: 8px;
+      padding: 0.55rem 0.8rem; font-size: 0.875rem; font-weight: 600; color: var(--muted);
+      cursor: pointer;
+    }
+    .playground-nav button:hover { background: var(--soft); color: var(--ink); }
+    .playground-nav button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .playground-main { min-width: 0; }
+    .playground-run { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .playground-output {
+      background: var(--code-bg); color: #a7f3d0; border-radius: 10px;
+      font-size: 0.8rem; line-height: 1.5; padding: 1rem 1.1rem;
+      max-height: 380px; overflow: auto; white-space: pre; margin-top: 0.75rem;
+    }
+    .playground-output.error { color: #fca5a5; }
+
+    /* ---------- Access check ---------- */
+    .access-try {
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+    }
+    .access-try label { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; font-weight: 600; }
+    .access-try select {
+      border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.7rem;
+      font-size: 0.9rem; background: #fff; color: var(--ink);
+    }
+    .access-result { flex-basis: 100%; border-radius: 8px; padding: 0.65rem 0.9rem; font-size: 0.9rem; font-weight: 500; }
+    .access-result.granted { background: #ecfdf5; color: var(--green); border: 1px solid #a7f3d0; }
+    .access-result.pending { background: hsl(43 96% 96%); color: var(--gold); border: 1px solid hsl(43 96% 82%); }
+    .access-result.denied { background: hsl(0 0% 96%); color: var(--muted); border: 1px solid var(--border); }
+
+    /* ---------- Footer ---------- */
+    footer { border-top: 1px solid var(--border); padding: 2.5rem 0 3rem; margin-top: 2rem; color: var(--muted); font-size: 0.9rem; }
+    footer h4 { color: var(--ink); font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+    footer ul { list-style: none; }
+    footer li { margin-bottom: 0.3rem; }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--ink); }
+    footer code { background: var(--soft); color: var(--ink); padding: 0.1rem 0.4rem; border-radius: 5px; font-size: 0.85em; }
+    .footer-note { margin-top: 0.5rem; }
+
+    /* ---------- Toasts ---------- */
+    .demo-toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translate(-50%, 20px);
+      background: var(--blue); color: #fff; border-radius: 10px;
+      padding: 0.7rem 1.2rem; font-size: 0.9rem; font-weight: 500;
+      opacity: 0; transition: opacity 0.25s, transform 0.25s; z-index: 1000000;
+      max-width: 90vw;
+    }
+    .demo-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+    .demo-toast-success { background: var(--green); }
+    .demo-toast-error { background: #dc2626; }
+
+    @media (max-width: 720px) {
+      .playground { grid-template-columns: 1fr; }
+      .playground-nav { flex-direction: row; flex-wrap: wrap; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#"><img class="logo-mark" src="assets/logo.jpg" alt="PayCan logo"> PayCan <span class="logo-demo">demo</span></a>
+    <nav class="nav-links">
+      <a href="#get-started">Get started</a>
+      <a href="#components">Components</a>
+      <a href="#playground">API playground</a>
+      <a href="#access-check">Check access</a>
+      <a href="#docs">Docs</a>
+      <a class="star-link" href="https://github.com/paycan-app/paycan" target="_blank" rel="noopener"><span class="star-ico">★</span> Star on GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============================== Hero ============================== -->
+  <div class="wrap hero">
+    <div class="hero-badge"><span class="dot"></span> Live demo — runs entirely on mock data, no backend or API keys</div>
+    <h1>Add payments to your app<br><span class="grad">in minutes, not weeks</span></h1>
+    <p>
+      PayCan gives your application a unified API for one-time and recurring payments through
+      Stripe and PayPal — plus drop-in web components for checkout, plans, orders and subscriptions.
+      Everything on this page uses the real SDK.
+    </p>
+    <div class="hero-actions">
+      <button type="button" class="btn btn-primary" id="btn-checkout-product">▶ Try the checkout modal</button>
+      <a class="btn btn-secondary" href="#get-started">Get started in 3 steps</a>
+      <a class="btn btn-secondary" href="https://github.com/paycan-app/paycan" target="_blank" rel="noopener"><span class="star-ico">★</span> Star us on GitHub</a>
+    </div>
+  </div>
+
+  <!-- ============================== Get started ============================== -->
+  <section id="get-started">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker kicker-blue">Quick start</span>
+        <h2>Up and running in 3 steps</h2>
+        <p>
+          One npm package (or a hosted ES module), one tiny backend endpoint, one line to open a checkout.
+          Each step is tagged with where the code runs:
+          <span class="env-badge env-front">Frontend · browser</span> or
+          <span class="env-badge env-back">Backend · your server</span>.
+        </p>
+        <p class="install-note">
+          <strong>Don't have a PayCan instance yet?</strong>
+          Clone the repo, run <code>composer install && npm install</code>, then <code>php artisan paycan:install</code>
+          (or visit <code>/install</code> in your browser) — the wizard sets up the database and admin account for you.
+        </p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-head"><span class="step-num">1</span><h3>Install the SDK</h3><span class="env-badge env-front">Frontend · browser</span></div>
+          <p>Via npm, or import the hosted ES module straight from your PayCan instance — no build step needed.</p>
+          <div class="code-block"><span class="code-label">Terminal</span>
+<pre><code>npm install @paycan/sdk</code></pre></div>
+          <div class="code-block"><span class="code-label">Or hosted — any HTML page</span>
+<pre><code>&lt;script type="module"&gt;
+  import { PayCan } from 'https://pay.yourapp.com/sdk/paycan-sdk.js';
+&lt;/script&gt;</code></pre></div>
+        </div>
+
+        <div class="step">
+          <div class="step-head"><span class="step-num">2</span><h3>Add a token endpoint to your backend</h3><span class="env-badge env-back">Backend · your server</span></div>
+          <p>
+            This is the only backend code you need. It runs on <em>your</em> server, verifies the user against
+            <em>your</em> login session, and exchanges them for a PayCan user token using your secret API key —
+            which never leaves the server. Never trust a user ID from the request body.
+          </p>
+          <div class="tabs" data-tabs>
+            <div class="tab-list">
+              <button type="button" class="tab-btn active" data-tab="express">Node / Express</button>
+              <button type="button" class="tab-btn" data-tab="nextjs">Next.js</button>
+              <button type="button" class="tab-btn" data-tab="laravel">Laravel</button>
+              <button type="button" class="tab-btn" data-tab="django">Django</button>
+            </div>
+
+            <div data-tab-panel="express">
+              <div class="code-block"><span class="code-label">server.js</span>
+<pre><code>app.post('/api/paycan/token', requireAuth, async (req, res) =&gt; {
+  const response = await fetch(`${process.env.PAYCAN_URL}/api/admin/users/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': process.env.PAYCAN_API_SECRET, // secret key: backend only!
+    },
+    body: JSON.stringify({
+      user_id: req.session.userId, // from YOUR session — not the request body
+      user: { name: req.user.name, email: req.user.email },
+    }),
+  });
+
+  const { token } = await response.json();
+  res.json({ token }); // return ONLY the token to the browser
+});</code></pre></div>
+            </div>
+
+            <div data-tab-panel="nextjs" hidden>
+              <div class="code-block"><span class="code-label">app/api/paycan/token/route.js — App Router route handler</span>
+<pre><code>import { auth } from '@/lib/auth'; // your auth helper (NextAuth, Clerk, …)
+
+export async function POST() {
+  const session = await auth();
+  if (!session?.user) {
+    return Response.json({ error: 'Unauthenticated' }, { status: 401 });
+  }
+
+  const response = await fetch(`${process.env.PAYCAN_URL}/api/admin/users/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': process.env.PAYCAN_API_SECRET, // secret key: backend only!
+    },
+    body: JSON.stringify({
+      user_id: session.user.id, // from YOUR session — not the request body
+      user: { name: session.user.name, email: session.user.email },
+    }),
+  });
+
+  const { token } = await response.json();
+  return Response.json({ token }); // return ONLY the token to the browser
+}</code></pre></div>
+            </div>
+
+            <div data-tab-panel="laravel" hidden>
+              <div class="code-block"><span class="code-label">routes/api.php + app/Http/Controllers/PayCanController.php</span>
+<pre><code>// routes/api.php
+Route::post('/paycan/token', [PayCanController::class, 'getToken'])
+    -&gt;middleware('auth:sanctum');
+
+// app/Http/Controllers/PayCanController.php
+public function getToken(Request $request)
+{
+    $user = $request-&gt;user(); // from auth middleware — not the request body
+
+    $response = Http::withHeaders([
+        'X-API-Key' =&gt; config('services.paycan.secret'), // secret key: backend only!
+    ])-&gt;post(config('services.paycan.url').'/api/admin/users/sync', [
+        'user_id' =&gt; $user-&gt;id,
+        'user' =&gt; ['name' =&gt; $user-&gt;name, 'email' =&gt; $user-&gt;email],
+    ]);
+
+    // return ONLY the token to the browser
+    return response()-&gt;json(['token' =&gt; $response-&gt;json('token')]);
+}</code></pre></div>
+            </div>
+
+            <div data-tab-panel="django" hidden>
+              <div class="code-block"><span class="code-label">views.py — urls.py: path('api/paycan/token', views.paycan_token)</span>
+<pre><code>@login_required
+def paycan_token(request):
+    user = request.user  # from the auth decorator — not the request body
+
+    response = requests.post(
+        f"{os.environ['PAYCAN_URL']}/api/admin/users/sync",
+        headers={'X-API-Key': os.environ['PAYCAN_API_SECRET']},  # backend only!
+        json={
+            'user_id': str(user.id),
+            'user': {'name': user.get_full_name(), 'email': user.email},
+        },
+    )
+
+    # return ONLY the token to the browser
+    return JsonResponse({'token': response.json()['token']})</code></pre></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-head"><span class="step-num">3</span><h3>Initialize and sell</h3><span class="env-badge env-front">Frontend · browser</span></div>
+          <p>Point the SDK at your PayCan instance, fetch a token from the endpoint you built in Step 2, and open a checkout with one call. Guests can check out too — no token required.</p>
+          <div class="code-block"><span class="code-label">app.js</span>
+<pre><code>import { PayCan } from '@paycan/sdk';
+
+// apiUrl = your PayCan instance (where the payment platform is hosted)
+const paycan = new PayCan({ apiUrl: 'https://pay.yourapp.com' });
+
+// The token comes from YOUR backend — the endpoint you built in Step 2.
+// The browser only ever sees this short-lived user token, never the secret key.
+// Optional: without it, checkouts still work as guest (email is asked instead).
+const { token } = await (await fetch('/api/paycan/token')).json();
+paycan.setUserToken(token);
+
+// One line to sell something
+paycan.openCheckoutModal('prod_pro', {
+  onSuccess: (checkoutUrl) =&gt; (window.location.href = checkoutUrl),
+});</code></pre></div>
+          <div class="step-note">
+            <strong>Where does the token come from?</strong>
+            <code>fetch('/api/paycan/token')</code> calls <em>your own backend</em> (Step 2), which authenticates
+            the user via your normal session, then asks PayCan for a user-scoped token using the secret key.
+            The flow is: <code>browser → your backend → PayCan → your backend → browser</code>.
+            The token only grants access to that user's own data and refreshes automatically before it expires.
+          </div>
+          <div class="step-note">
+            <strong>Where does this code go?</strong>
+            Create the <code>PayCan</code> instance once, at app startup.
+            Call <code>setUserToken()</code> right after your login flow succeeds — or on page load when the
+            user already has a session. It must run <em>before any account action</em> (orders, subscriptions,
+            transactions); doing it eagerly at login is better than lazily before a payment, so the token is
+            ready the moment the user clicks "Buy". If they aren't signed in, skip it — the checkout modal
+            falls back to guest mode and asks for an email instead.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Components ============================== -->
+  <section id="components">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker kicker-purple">Web components</span>
+        <h2>Drop-in UI — try each one live <span class="env-badge env-front">Frontend · browser</span></h2>
+        <p>
+          Framework-agnostic modals rendered in a Shadow DOM, so your page styles are never affected.
+          Fully responsive, with <code>light</code>, <code>dark</code> and <code>auto</code> themes.
+        </p>
+      </div>
+
+      <div class="toolbar">
+        <label>Theme
+          <select id="theme-select">
+            <option value="light" selected>light</option>
+            <option value="dark">dark</option>
+            <option value="auto">auto</option>
+          </select>
+        </label>
+        <label>
+          <span class="switch">
+            <input type="checkbox" id="signed-in-toggle" checked>
+            <span class="slider"></span>
+          </span>
+          Signed in (demo user)
+        </label>
+        <span class="toolbar-hint">Turn the switch off to see guest checkout — the modal asks for an email instead.</span>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-top"><h3><code>CheckoutModal</code></h3><span class="badge badge-public">guest OK</span></div>
+          <p>Price + gateway selection and checkout session creation for a product. Shows an email field automatically for guests.</p>
+          <div class="code-block"><pre><code>paycan.openCheckoutModal('prod_pro', {
+  theme: 'auto',
+  onSuccess: (url) =&gt; (location.href = url),
+});</code></pre></div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-checkout-product2"
+                    onclick="document.getElementById('btn-checkout-product').click()">Open for a product</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-checkout-price">Open for one price</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-top"><h3><code>ProductsModal</code></h3><span class="badge badge-public">guest OK</span></div>
+          <p>Browse products or plans and jump straight into checkout. Filter by type: <code>subscription</code>, <code>digital</code>, <code>service</code>, <code>physical</code>.</p>
+          <div class="code-block"><pre><code>paycan.openProductsModal({
+  type: 'subscription', // optional filter
+  theme: 'auto',
+});</code></pre></div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-products">All products</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-products-subscriptions">Subscriptions only</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-top"><h3><code>SubscriptionsModal</code></h3><span class="badge badge-auth">auth</span></div>
+          <p>List, cancel, resume and change plans. Try cancelling the active plan — the mock data updates live.</p>
+          <div class="code-block"><pre><code>import { SubscriptionsModal } from '@paycan/sdk';
+
+new SubscriptionsModal(paycan, { theme: 'auto' }).open();</code></pre></div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-subscriptions" data-requires-auth>Open subscriptions</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-top"><h3><code>OrdersModal</code></h3><span class="badge badge-auth">auth</span></div>
+          <p>Order history with status, totals and gateway. Complete a demo checkout first and your new order appears here.</p>
+          <div class="code-block"><pre><code>import { OrdersModal } from '@paycan/sdk';
+
+new OrdersModal(paycan, { theme: 'auto' }).open();</code></pre></div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-orders" data-requires-auth>Open orders</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-top"><h3><code>TransactionsModal</code></h3><span class="badge badge-auth">auth</span></div>
+          <p>Payment history — charges and refunds across all gateways, linked to their orders.</p>
+          <div class="code-block"><pre><code>import { TransactionsModal } from '@paycan/sdk';
+
+new TransactionsModal(paycan, { theme: 'auto' }).open();</code></pre></div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-transactions" data-requires-auth>Open transactions</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-panel" id="checkout-result" hidden>
+        <strong>✓ Checkout session created.</strong>
+        In production the customer is now redirected to the payment gateway:<br>
+        <a id="checkout-result-url" href="#" target="_blank" rel="noopener"></a><br>
+        <span class="result-hint">Open the Orders modal — your new order is already there (status: pending).</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Playground ============================== -->
+  <section id="playground">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker kicker-gold">API playground</span>
+        <h2>Prefer your own UI? Use the API client <span class="env-badge env-front">Frontend · browser</span></h2>
+        <p>
+          Every modal above is built on the same typed API client you get with the SDK —
+          filtering, sorting, includes and pagination included. Click a call to run it against the mock API.
+        </p>
+      </div>
+
+      <div class="playground">
+        <nav class="playground-nav">
+          <button type="button" data-snippet="list-products" class="active">List products</button>
+          <button type="button" data-snippet="list-orders">List my orders</button>
+          <button type="button" data-snippet="active-subscriptions">Active subscriptions</button>
+          <button type="button" data-snippet="checkout-preview">Preview a checkout</button>
+          <button type="button" data-snippet="create-checkout">Create checkout session</button>
+        </nav>
+        <div class="playground-main">
+          <div class="code-block" data-snippet-code="list-products"><span class="code-label">Public — no auth needed</span>
+<pre><code>const products = await paycan.products.list({ include: 'prices' });</code></pre></div>
+          <div class="code-block" data-snippet-code="list-orders" hidden><span class="code-label">Requires a user token</span>
+<pre><code>const orders = await paycan.orders.list({ per_page: 5, sort: '-created_at' });</code></pre></div>
+          <div class="code-block" data-snippet-code="active-subscriptions" hidden><span class="code-label">Cached (60s) — safe to call on every page view</span>
+<pre><code>const active = await paycan.subscriptions.listActive();
+const hasPremium = active.some((sub) =&gt; sub.product?.name === 'Pro Plan');</code></pre></div>
+          <div class="code-block" data-snippet-code="checkout-preview" hidden><span class="code-label">Public — live totals &amp; available gateways</span>
+<pre><code>const preview = await paycan.checkout.preview({
+  product_id: 'prod_pro',
+  quantity: 2,
+});</code></pre></div>
+          <div class="code-block" data-snippet-code="create-checkout" hidden><span class="code-label">Guest checkout — just pass billing_email</span>
+<pre><code>const session = await paycan.checkout.create({
+  product_id: 'prod_ebook',
+  product_price_id: 'price_ebook',
+  gateway: 'stripe',
+  billing_email: 'guest@example.com',
+});
+// then: window.location.href = session.checkout_url;</code></pre></div>
+
+          <pre class="playground-output" id="playground-output">// Click "Run" to execute the selected call against the mock API</pre>
+          <div class="playground-run">
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.querySelector('.playground-nav button.active').click()">▶ Run</button>
+            <span class="toolbar-hint">Tip: <code>window.paycan</code> is exposed in this page — try calls in the browser console too.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Check access ============================== -->
+  <section id="access-check">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker kicker-green">Access control</span>
+        <h2>Did this user buy it? Check access in one call <span class="env-badge env-front">Frontend · browser</span></h2>
+        <p>
+          The most common thing to build right after checkout: gate content behind a purchase.
+          One-time products (e-books, services, physical goods) are unlocked by a <code>completed</code> order;
+          plans are unlocked by an <em>active</em> subscription. Both checks are cheap enough to run on every page load.
+        </p>
+      </div>
+
+      <div class="tabs" data-tabs>
+        <div class="tab-list">
+          <button type="button" class="tab-btn active" data-tab="one-time">One-time purchase</button>
+          <button type="button" class="tab-btn" data-tab="subscription">Subscription plan</button>
+        </div>
+
+        <div data-tab-panel="one-time">
+          <div class="code-block"><span class="code-label">Orders — e-books, services, physical goods</span>
+<pre><code>async function ownsProduct(productId) {
+  const { data: orders } = await paycan.orders.list({
+    filter: { status: 'completed' },
+    include: 'product,productPrice',
+  });
+
+  return orders.some((order) =&gt; order.product?.id === productId);
+}
+
+if (await ownsProduct('prod_ebook')) {
+  unlockDownload();
+} else {
+  showBuyButton();
+}</code></pre></div>
+        </div>
+
+        <div data-tab-panel="subscription" hidden>
+          <div class="code-block"><span class="code-label">Subscriptions — cached 60s, safe to call on every page view</span>
+<pre><code>async function hasActivePlan(productId) {
+  const active = await paycan.subscriptions.listActive();
+  return active.some((sub) =&gt; sub.product?.id === productId);
+}
+
+if (await hasActivePlan('prod_pro')) {
+  showPremiumContent();
+} else {
+  showUpgradeModal();
+}</code></pre></div>
+        </div>
+      </div>
+
+      <div class="access-try">
+        <label>Try it against the demo user's data
+          <select id="access-product-select">
+            <option value="prod_pro">Pro Plan — active subscription</option>
+            <option value="prod_starter">Starter Plan — cancelled subscription</option>
+            <option value="prod_ebook">Payments Handbook — completed order</option>
+            <option value="prod_onboarding">Onboarding Session — pending order</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-check-access">Check access</button>
+        <div id="access-result" class="access-result" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Star CTA ============================== -->
+  <div class="wrap">
+    <div class="star-band">
+      <h2>PayCan is open source — and stars keep it moving ⭐</h2>
+      <p>
+        If this demo saved you an afternoon of payment plumbing, a GitHub star is the single most
+        helpful thing you can do. It's how new developers find the project and how we prioritize the roadmap.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-invert" href="https://github.com/paycan-app/paycan" target="_blank" rel="noopener"><span class="star-ico">★</span> Star paycan-app/paycan</a>
+        <a class="btn btn-ghost" href="https://github.com/paycan-app/paycan/issues" target="_blank" rel="noopener">Request a feature</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== Docs ============================== -->
+  <footer id="docs">
+    <div class="wrap footer-grid">
+      <div>
+        <h4>How this demo works</h4>
+        <p>
+          This page is fully standalone — the real SDK build is vendored at <code>vendor/paycan-sdk.js</code>
+          (identical to the one your own PayCan instance serves at <code>/sdk/paycan-sdk.js</code>).
+          A tiny fetch interceptor (<code>mock-api.js</code>) answers all <code>/api/*</code> calls
+          with in-memory data — inspect it via <code>window.PayCanMock.db</code>. No backend, build step,
+          or server required — this whole folder can be copied straight to GitHub Pages or any static host.
+        </p>
+      </div>
+      <div>
+        <h4>Keep reading</h4>
+        <ul>
+          <li>Getting started guide — <code>sdk/front/GETTING_STARTED.md</code></li>
+          <li>Modal components — <code>CHECKOUT_MODAL_README.md</code></li>
+          <li>Full API reference — <code>API_STRUCTURE.md</code></li>
+          <li>Framework examples — <code>sdk/front/examples/</code></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Running the full app instead?</h4>
+        <p>
+          This page is a standalone, mock-data demo — copy the <code>demo/</code> folder anywhere
+          (including GitHub Pages) and it works with no backend at all.
+        </p>
+        <p class="footer-note">
+          If you have a full PayCan instance running, it also ships two demos against your
+          <em>real</em> API and database: <code>/checkout-modal-demo</code> and <code>/account-modals-demo</code>.
+        </p>
+        <p class="footer-note">Enjoying PayCan? <a href="https://github.com/paycan-app/paycan" target="_blank" rel="noopener"><span class="star-ico">★</span> Star the repo</a> — it matters to us.</p>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<script src="mock-api.js"></script>
+<script type="module" src="demo.js"></script>
+
+</body>
+</html>

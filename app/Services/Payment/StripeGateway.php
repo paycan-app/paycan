@@ -2,10 +2,7 @@
 
 namespace App\Services\Payment;
 
-use App\Models\Order;
-use App\Models\Subscription;
 use App\Models\User;
-use App\Notifications\PaymentSuccessNotification;
 use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
 
@@ -17,7 +14,8 @@ class StripeGateway extends AbstractPaymentGateway
 
     public function __construct()
     {
-        $secretKey = config('services.stripe.secret');
+        // Try to get secret key from settings first, then fall back to config
+        $secretKey = settings('stripe.api_key') ?? config('services.stripe.key');
 
         // Only initialize if credentials are properly configured
         if ($secretKey &&
@@ -44,27 +42,14 @@ class StripeGateway extends AbstractPaymentGateway
         try {
             $lineItems = [];
             foreach ($data['items'] as $item) {
-                // Get price ID from gateway_data JSON
-                $priceId = $item['price']->gateway_data['stripe']['price_id'] ?? null;
-
-                // If price ID doesn't exist or is invalid (fake demo ID), create it dynamically
-                if (! $priceId || $this->isInvalidPriceId($priceId)) {
-                    Log::info("Creating Stripe price for ProductPrice: {$item['price']->title}");
-                    $priceId = $this->createStripePrice($item['price']);
-
-                    if (! $priceId) {
-                        throw new \Exception("Failed to create Stripe price for '{$item['price']->title}'. Please contact support.");
-                    }
-                }
-
                 $lineItems[] = [
-                    'price' => $priceId,
+                    'price' => $this->getOrCreateStripePrice($item['price']),
                     'quantity' => $item['quantity'] ?? 1,
                 ];
             }
 
             // Get or create customer for the user
-            $customerId = $this->getOrCreateCustomer($data['user']);
+            $customerId = $this->getOrCreateStripeCustomer($data['user']);
 
             // Determine if this is a subscription based on the first item's billing period
             $isSubscription = false;
@@ -86,7 +71,6 @@ class StripeGateway extends AbstractPaymentGateway
                 ],
             ];
 
-            // For subscriptions, add allow_promotion_codes if available
             if ($isSubscription) {
                 $sessionData['allow_promotion_codes'] = true;
                 $sessionData['subscription_data'] = [
@@ -95,6 +79,27 @@ class StripeGateway extends AbstractPaymentGateway
                         'order_id' => $data['order']->id,
                     ],
                 ];
+
+                // Pass the trial to Stripe so the customer is not charged during it
+                $trialDays = (int) ($firstItem['price']->trial_days ?? 0);
+                if ($trialDays > 0) {
+                    $sessionData['subscription_data']['trial_period_days'] = $trialDays;
+                }
+            } else {
+                // Tag the payment intent so webhooks (payment_intent.succeeded/failed)
+                // can be mapped back to our order
+                $sessionData['payment_intent_data'] = [
+                    'metadata' => [
+                        'user_id' => $data['user']->id,
+                        'order_id' => $data['order']->id,
+                    ],
+                ];
+            }
+
+            // Tax is delegated to Stripe Tax when enabled in settings
+            if (settings('stripe.automatic_tax')) {
+                $sessionData['automatic_tax'] = ['enabled' => true];
+                $sessionData['customer_update'] = ['address' => 'auto'];
             }
 
             $session = $this->stripe->checkout->sessions->create($sessionData);
@@ -134,107 +139,207 @@ class StripeGateway extends AbstractPaymentGateway
         }
     }
 
-    public function handlePaymentSuccess(array $payload)
+    public function handleWebhook(array $event): array
     {
-        try {
-            $eventType = $payload['type'] ?? '';
+        $eventType = $event['type'] ?? null;
+        $eventData = $event['data']['object'] ?? [];
 
-            if ($eventType === 'checkout.session.completed') {
-                $session = $payload['data']['object'] ?? [];
-                $sessionId = $session['id'] ?? '';
-                $mode = $session['mode'] ?? '';
+        Log::info('Processing Stripe webhook event', [
+            'event_type' => $eventType,
+            'event_id' => $event['id'] ?? 'unknown',
+        ]);
 
-                if ($sessionId) {
-                    // Find the order by gateway_order_id (checkout session ID)
-                    $order = Order::where('gateway_order_id', $sessionId)->first();
-
-                    if ($order && $order->status === 'pending') {
-                        $order->update([
-                            'status' => 'paid',
-                            'meta' => array_merge($order->meta ?? [], [
-                                'payment_completed_at' => now(),
-                                'stripe_payment_intent' => $session['payment_intent'] ?? null,
-                                'stripe_subscription' => $session['subscription'] ?? null,
-                            ]),
-                        ]);
-
-                        Log::info("Order {$order->order_number} marked as paid via Stripe webhook");
-
-                        // If this was a subscription checkout, update the subscription status too
-                        if ($mode === 'subscription') {
-                            $subscription = Subscription::where('gateway_subscription_id', $sessionId)
-                                ->orWhere('order_id', $order->id)
-                                ->first();
-
-                            if ($subscription && $subscription->status === 'incomplete') {
-                                $stripeSubscriptionId = $session['subscription'] ?? null;
-
-                                $subscription->update([
-                                    'status' => 'active',
-                                    'gateway_subscription_id' => $stripeSubscriptionId,
-                                    'gateway_status' => 'active',
-                                    'gateway_data' => array_merge($subscription->gateway_data ?? [], [
-                                        'stripe_checkout_session' => $sessionId,
-                                        'stripe_subscription_id' => $stripeSubscriptionId,
-                                        'activated_at' => now(),
-                                    ]),
-                                ]);
-
-                                Log::info("Subscription {$subscription->id} marked as active via Stripe webhook");
-                            }
-                        }
-
-                        // TODO: Send payment success notification to user
-                        // $order->user->notify(new PaymentSuccessNotification($order));
-                    }
-                }
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Stripe payment success webhook error: '.$e->getMessage());
-
-            return false;
-        }
+        return match ($eventType) {
+            'checkout.session.completed' => $this->handleCheckoutCompleted($eventData),
+            'payment_intent.succeeded' => $this->handlePaymentSuccess($eventData),
+            'payment_intent.payment_failed' => $this->handlePaymentFailure($eventData),
+            'customer.subscription.created' => $this->handleSubscriptionCreated($eventData),
+            'customer.subscription.updated' => $this->handleSubscriptionUpdated($eventData),
+            'customer.subscription.deleted' => $this->handleSubscriptionDeleted($eventData),
+            'invoice.payment_succeeded' => $this->handleInvoicePaymentSucceeded($eventData),
+            'invoice.payment_failed' => $this->handleInvoicePaymentFailed($eventData),
+            default => ['success' => true, 'action' => 'noop', 'message' => 'Unhandled event type'],
+        };
     }
 
-    public function handlePaymentFailure(array $payload)
+    public function handlePaymentSuccess(array $paymentIntent): array
     {
-        try {
-            $eventType = $payload['type'] ?? '';
+        $paymentIntentId = $paymentIntent['id'] ?? '';
 
-            if ($eventType === 'payment_intent.payment_failed') {
-                $paymentIntent = $payload['data']['object'] ?? [];
-                $paymentIntentId = $paymentIntent['id'] ?? '';
+        return [
+            'success' => true,
+            'action' => 'mark_order_paid_by_payment_intent',
+            'payment_intent_id' => $paymentIntentId,
+            'order_id' => $paymentIntent['metadata']['order_id'] ?? null,
+            'gateway_data' => [
+                'stripe_payment_intent' => $paymentIntentId,
+            ],
+        ];
+    }
 
-                if ($paymentIntentId) {
-                    // Try to find order by payment intent metadata
-                    $orderId = $paymentIntent['metadata']['order_id'] ?? null;
+    public function handlePaymentFailure(array $paymentIntent): array
+    {
+        $paymentIntentId = $paymentIntent['id'] ?? '';
 
-                    if ($orderId) {
-                        $order = Order::find($orderId);
+        return [
+            'success' => true,
+            'action' => 'mark_order_failed_by_payment_intent',
+            'payment_intent_id' => $paymentIntentId,
+            'order_id' => $paymentIntent['metadata']['order_id'] ?? null,
+            'failure_reason' => $paymentIntent['last_payment_error']['message'] ?? 'Payment failed',
+            'gateway_data' => [
+                'stripe_payment_intent' => $paymentIntentId,
+            ],
+        ];
+    }
 
-                        if ($order && $order->status === 'pending') {
-                            $order->update([
-                                'status' => 'failed',
-                                'meta' => array_merge($order->meta ?? [], [
-                                    'payment_failed_at' => now(),
-                                    'failure_reason' => $paymentIntent['last_payment_error']['message'] ?? 'Payment failed',
-                                ]),
-                            ]);
+    protected function handleCheckoutCompleted(array $session): array
+    {
+        $sessionId = $session['id'] ?? '';
+        $mode = $session['mode'] ?? '';
 
-                            Log::info("Order {$order->order_number} marked as failed via Stripe webhook");
-                        }
-                    }
-                }
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Stripe payment failure webhook error: '.$e->getMessage());
-
-            return false;
+        if (! $sessionId) {
+            return ['success' => false, 'error' => 'Missing session ID'];
         }
+
+        $result = [
+            'success' => true,
+            'action' => 'mark_order_paid',
+            'gateway_order_id' => $sessionId,
+            'gateway_data' => [
+                'stripe_payment_intent' => $session['payment_intent'] ?? null,
+                'stripe_subscription' => $session['subscription'] ?? null,
+                'stripe_session_id' => $sessionId,
+            ],
+        ];
+
+        if ($mode === 'subscription' && isset($session['subscription'])) {
+            // Subscription checkout: the initial payment transaction is recorded by
+            // the invoice.payment_succeeded webhook, so no transaction here
+            $result['subscription_action'] = 'activate';
+            $result['subscription_data'] = [
+                'gateway_subscription_id' => $session['subscription'],
+                'gateway_status' => 'active',
+                'stripe_checkout_session' => $sessionId,
+            ];
+        } else {
+            $result['transaction_data'] = [
+                'gateway_transaction_id' => $session['payment_intent'] ?? $sessionId,
+                'gateway_data' => [
+                    'checkout_session_id' => $sessionId,
+                    'payment_intent' => $session['payment_intent'] ?? null,
+                ],
+            ];
+        }
+
+        return $result;
+    }
+
+    protected function handleSubscriptionCreated(array $subscriptionData): array
+    {
+        $subscriptionId = $subscriptionData['id'] ?? '';
+
+        return [
+            'success' => true,
+            'action' => 'update_subscription_status',
+            'subscription_id' => $subscriptionId,
+            'status' => $this->mapSubscriptionStatus($subscriptionData['status'] ?? 'active'),
+            'gateway_data' => [
+                'gateway_status' => $subscriptionData['status'] ?? 'active',
+                'current_period_end' => isset($subscriptionData['current_period_end'])
+                    ? \Carbon\Carbon::createFromTimestamp($subscriptionData['current_period_end'])
+                    : null,
+                'stripe_subscription_data' => $subscriptionData,
+            ],
+        ];
+    }
+
+    protected function handleSubscriptionUpdated(array $subscriptionData): array
+    {
+        $subscriptionId = $subscriptionData['id'] ?? '';
+
+        return [
+            'success' => true,
+            'action' => 'update_subscription_status',
+            'subscription_id' => $subscriptionId,
+            'status' => $this->mapSubscriptionStatus($subscriptionData['status'] ?? 'unknown'),
+            'gateway_data' => [
+                'gateway_status' => $subscriptionData['status'] ?? 'unknown',
+                'current_period_end' => isset($subscriptionData['current_period_end'])
+                    ? \Carbon\Carbon::createFromTimestamp($subscriptionData['current_period_end'])
+                    : null,
+                'stripe_subscription_data' => $subscriptionData,
+            ],
+        ];
+    }
+
+    protected function handleSubscriptionDeleted(array $subscriptionData): array
+    {
+        $subscriptionId = $subscriptionData['id'] ?? '';
+
+        return [
+            'success' => true,
+            'action' => 'cancel_subscription',
+            'subscription_id' => $subscriptionId,
+            'gateway_data' => [
+                'gateway_status' => 'canceled',
+                'current_period_end' => isset($subscriptionData['current_period_end'])
+                    ? \Carbon\Carbon::createFromTimestamp($subscriptionData['current_period_end'])
+                    : now(),
+            ],
+        ];
+    }
+
+    protected function handleInvoicePaymentSucceeded(array $invoice): array
+    {
+        $subscriptionId = $invoice['subscription'] ?? '';
+
+        return [
+            'success' => true,
+            'action' => 'create_subscription_transaction',
+            'subscription_id' => $subscriptionId,
+            'transaction_data' => [
+                'type' => 'subscription_payment',
+                'status' => 'completed',
+                'amount' => ($invoice['amount_paid'] ?? 0) / 100,
+                'currency' => $invoice['currency'] ?? 'usd',
+                'gateway_transaction_id' => $invoice['id'] ?? '',
+                'gateway_data' => $invoice,
+            ],
+        ];
+    }
+
+    protected function handleInvoicePaymentFailed(array $invoice): array
+    {
+        $subscriptionId = $invoice['subscription'] ?? '';
+
+        return [
+            'success' => true,
+            'action' => 'handle_invoice_payment_failed',
+            'subscription_id' => $subscriptionId,
+            'transaction_data' => [
+                'type' => 'subscription_payment',
+                'status' => 'failed',
+                'amount' => ($invoice['amount_due'] ?? 0) / 100,
+                'currency' => $invoice['currency'] ?? 'usd',
+                'gateway_transaction_id' => $invoice['id'] ?? '',
+                'gateway_data' => $invoice,
+            ],
+        ];
+    }
+
+    protected function mapSubscriptionStatus(string $stripeStatus): string
+    {
+        return match ($stripeStatus) {
+            'active' => 'active',
+            'past_due' => 'past_due',
+            'canceled' => 'canceled',
+            'unpaid' => 'past_due',
+            'incomplete' => 'incomplete',
+            'incomplete_expired' => 'expired',
+            'trialing' => 'trialing',
+            default => 'unknown',
+        };
     }
 
     public function getPaymentDetails(string $paymentId)
@@ -305,7 +410,7 @@ class StripeGateway extends AbstractPaymentGateway
 
         try {
             // Get or create customer
-            $customerId = $this->getOrCreateCustomer($data['user']);
+            $customerId = $this->getOrCreateStripeCustomer($data['user']);
 
             // Get the price ID from the product price
             $productPrice = $data['items'][0]['price'];
@@ -315,7 +420,7 @@ class StripeGateway extends AbstractPaymentGateway
                 throw new \Exception('Failed to get or create Stripe price');
             }
 
-            $subscription = $this->stripe->subscriptions->create([
+            $subscriptionData = [
                 'customer' => $customerId,
                 'items' => [['price' => $priceId]],
                 'metadata' => [
@@ -323,7 +428,14 @@ class StripeGateway extends AbstractPaymentGateway
                     'subscription_id' => $data['subscription']->id ?? null,
                     'order_id' => $data['order']->id ?? null,
                 ],
-            ]);
+            ];
+
+            $trialDays = (int) ($productPrice->trial_days ?? 0);
+            if ($trialDays > 0) {
+                $subscriptionData['trial_period_days'] = $trialDays;
+            }
+
+            $subscription = $this->stripe->subscriptions->create($subscriptionData);
 
             return [
                 'success' => true,
@@ -340,7 +452,7 @@ class StripeGateway extends AbstractPaymentGateway
         }
     }
 
-    public function cancelSubscription(string $subscriptionId)
+    public function cancelSubscription(string $subscriptionId, bool $immediately = false)
     {
         if (! $this->stripe) {
             return [
@@ -350,13 +462,19 @@ class StripeGateway extends AbstractPaymentGateway
         }
 
         try {
-            $subscription = $this->stripe->subscriptions->cancel($subscriptionId);
+            if ($immediately) {
+                $subscription = $this->stripe->subscriptions->cancel($subscriptionId);
+            } else {
+                $subscription = $this->stripe->subscriptions->update($subscriptionId, [
+                    'cancel_at_period_end' => true,
+                ]);
+            }
 
             return [
                 'success' => true,
                 'status' => $subscription->status,
                 'current_period_end' => $subscription->current_period_end,
-                'canceled_at' => $subscription->canceled_at,
+                'canceled_at' => $subscription->canceled_at ?? now()->timestamp,
             ];
         } catch (\Exception $e) {
             Log::error('Stripe cancel subscription error: '.$e->getMessage());
@@ -470,6 +588,7 @@ class StripeGateway extends AbstractPaymentGateway
             $currentGatewayData['stripe'] = [
                 'price_id' => $stripePrice->id,
                 'product_id' => $stripeProduct->id,
+                'price_fingerprint' => $this->priceFingerprint($productPrice),
             ];
 
             $productPrice->update(['gateway_data' => $currentGatewayData]);
@@ -576,57 +695,17 @@ class StripeGateway extends AbstractPaymentGateway
     }
 
     /**
-     * Get or create Stripe customer for user
-     */
-    public function getOrCreateCustomer($user)
-    {
-        // Check if user already has a Stripe customer ID
-        $gatewayData = $user->gateway_data ?? [];
-        $customerId = $gatewayData['stripe']['customer_id'] ?? null;
-
-        if ($customerId) {
-            try {
-                // Verify the customer still exists in Stripe
-                $customer = $this->stripe->customers->retrieve($customerId);
-
-                return $customer->id;
-            } catch (\Stripe\Exception\InvalidRequestException $e) {
-                // Customer doesn't exist, create a new one
-                Log::warning("Stripe customer {$customerId} not found for user {$user->id}, creating new one");
-            }
-        }
-
-        // Create new Stripe customer
-        $customer = $this->stripe->customers->create([
-            'email' => $user->email,
-            'name' => $user->name,
-            'metadata' => [
-                'user_id' => $user->id,
-            ],
-        ]);
-
-        // Update the user's gateway_data with the new customer ID
-        $gatewayData['stripe'] = array_merge($gatewayData['stripe'] ?? [], [
-            'customer_id' => $customer->id,
-        ]);
-
-        $user->update(['gateway_data' => $gatewayData]);
-
-        Log::info("Created Stripe customer: {$customer->id} for user: {$user->id}");
-
-        return $customer->id;
-    }
-
-    /**
      * Get or create Stripe price for product price
      */
     public function getOrCreateStripePrice($productPrice)
     {
         // Get price ID from gateway_data JSON
         $priceId = $productPrice->gateway_data['stripe']['price_id'] ?? null;
+        $storedFingerprint = $productPrice->gateway_data['stripe']['price_fingerprint'] ?? null;
 
-        // If price ID doesn't exist or is invalid (fake demo ID), create it dynamically
-        if (! $priceId || $this->isInvalidPriceId($priceId)) {
+        // Recreate when missing, invalid (fake demo ID), or the price details changed
+        // (Stripe prices are immutable once created)
+        if (! $priceId || $this->isInvalidPriceId($priceId) || $storedFingerprint !== $this->priceFingerprint($productPrice)) {
             Log::info("Creating Stripe price for ProductPrice: {$productPrice->title}");
             $priceId = $this->createStripePrice($productPrice);
 
@@ -638,27 +717,16 @@ class StripeGateway extends AbstractPaymentGateway
         return $priceId;
     }
 
-    public function handleWebhook(array $payload)
+    /**
+     * Fingerprint of the price attributes a Stripe price is built from
+     */
+    protected function priceFingerprint($productPrice): string
     {
-        try {
-            $event = $payload['type'] ?? null;
-
-            switch ($event) {
-                case 'checkout.session.completed':
-                    return $this->handlePaymentSuccess($payload);
-                case 'payment_intent.payment_failed':
-                    return $this->handlePaymentFailure($payload);
-                default:
-                    return ['success' => true, 'message' => 'Unhandled event type'];
-            }
-        } catch (\Exception $e) {
-            Log::error('Stripe webhook error: '.$e->getMessage());
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
-        }
+        return implode('|', [
+            number_format($productPrice->amount, 2, '.', ''),
+            strtolower($productPrice->currency),
+            $productPrice->billing_period,
+        ]);
     }
 
     /**
@@ -666,6 +734,13 @@ class StripeGateway extends AbstractPaymentGateway
      */
     public function createCustomerPortalSession(User $user, string $returnUrl)
     {
+        if (! $this->stripe) {
+            return [
+                'success' => false,
+                'error' => 'Stripe credentials not configured',
+            ];
+        }
+
         try {
             // Get or create Stripe customer
             $stripeCustomerId = $this->getOrCreateStripeCustomer($user);
@@ -675,7 +750,7 @@ class StripeGateway extends AbstractPaymentGateway
             }
 
             // Create billing portal session
-            $session = \Stripe\BillingPortal\Session::create([
+            $session = $this->stripe->billingPortal->sessions->create([
                 'customer' => $stripeCustomerId,
                 'return_url' => $returnUrl,
             ]);
@@ -703,6 +778,12 @@ class StripeGateway extends AbstractPaymentGateway
      */
     protected function getOrCreateStripeCustomer(User $user)
     {
+        if (! $this->stripe) {
+            Log::error('Stripe client not initialized', ['user_id' => $user->id]);
+
+            return null;
+        }
+
         try {
             // Check if user already has a Stripe customer ID stored
             $existingCustomerId = $user->gateway_data['stripe']['customer_id'] ?? null;
@@ -710,7 +791,7 @@ class StripeGateway extends AbstractPaymentGateway
             if ($existingCustomerId) {
                 // Verify the customer exists in Stripe
                 try {
-                    $customer = \Stripe\Customer::retrieve($existingCustomerId);
+                    $customer = $this->stripe->customers->retrieve($existingCustomerId);
                     if ($customer && ! $customer->deleted) {
                         return $existingCustomerId;
                     }
@@ -724,7 +805,7 @@ class StripeGateway extends AbstractPaymentGateway
             }
 
             // Create new Stripe customer
-            $customer = \Stripe\Customer::create([
+            $customer = $this->stripe->customers->create([
                 'email' => $user->email,
                 'name' => $user->name,
                 'metadata' => [

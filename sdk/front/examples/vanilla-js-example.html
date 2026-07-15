@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayCan SDK - Vanilla JavaScript Example</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .section {
+      background: #f5f5f5;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .order {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .status-active { background: #d4edda; color: #155724; }
+    .status-completed { background: #d1ecf1; color: #0c5460; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>PayCan SDK Demo</h1>
+
+  <div class="section">
+    <h2>Authentication</h2>
+    <p id="auth-status">Not authenticated</p>
+    <button onclick="authenticate()">Authenticate User</button>
+  </div>
+
+  <div class="section">
+    <h2>Orders</h2>
+    <button onclick="loadOrders()" id="load-orders-btn" disabled>Load Orders</button>
+    <button onclick="createOrder()" id="create-order-btn" disabled>Create Test Order</button>
+    <div id="orders-container"></div>
+  </div>
+
+  <div class="section">
+    <h2>Subscriptions</h2>
+    <button onclick="loadSubscriptions()" id="load-subs-btn" disabled>Load Subscriptions</button>
+    <button onclick="checkAccess()" id="check-access-btn" disabled>Check Premium Access</button>
+    <div id="subscriptions-container"></div>
+  </div>
+
+  <div class="section">
+    <h2>Checkout</h2>
+    <button onclick="createCheckout()" id="checkout-btn" disabled>Buy Premium Plan</button>
+  </div>
+
+  <script type="module">
+    // The SDK is an ES module served directly by your PayCan instance
+    import { PayCan } from 'https://pay.yourapp.com/sdk/paycan-sdk.js';
+
+    // Initialize PayCan SDK
+    const paycan = new PayCan({
+      apiUrl: 'https://pay.yourapp.com',
+      debug: true
+    });
+
+    // ==========================================
+    // Authentication
+    // ==========================================
+
+    async function authenticate() {
+      try {
+        document.getElementById('auth-status').textContent = 'Getting token...';
+
+        // Get PayCan token from your backend
+        const response = await fetch('/api/paycan/token');
+        const { token } = await response.json();
+
+        // Set the token
+        paycan.setUserToken(token);
+
+        document.getElementById('auth-status').textContent = 'Authenticated ✓';
+        document.getElementById('auth-status').style.color = 'green';
+
+        // Enable buttons
+        enableButtons();
+      } catch (error) {
+        document.getElementById('auth-status').textContent = 'Authentication failed: ' + error.message;
+        document.getElementById('auth-status').style.color = 'red';
+      }
+    }
+
+    function enableButtons() {
+      document.getElementById('load-orders-btn').disabled = false;
+      document.getElementById('create-order-btn').disabled = false;
+      document.getElementById('load-subs-btn').disabled = false;
+      document.getElementById('check-access-btn').disabled = false;
+      document.getElementById('checkout-btn').disabled = false;
+    }
+
+    // ==========================================
+    // Orders
+    // ==========================================
+
+    async function loadOrders() {
+      const container = document.getElementById('orders-container');
+      container.innerHTML = '<div class="loading">Loading orders...</div>';
+
+      try {
+        const response = await paycan.orders.list();
+        const orders = response.data || [];
+
+        if (orders.length === 0) {
+          container.innerHTML = '<p>No orders yet</p>';
+          return;
+        }
+
+        let html = '';
+        orders.forEach(order => {
+          html += `
+            <div class="order">
+              <h3>Order #${order.order_number}</h3>
+              <p><span class="status status-${order.status}">${order.status}</span></p>
+              <p>Total: $${order.total} ${order.currency}</p>
+              <p>Date: ${new Date(order.created_at).toLocaleDateString()}</p>
+              <button onclick="viewOrder('${order.id}')">View Details</button>
+              ${order.product_price?.product?.type === 'digital' ?
+                `<button onclick="getDownloads('${order.id}')">Get Downloads</button>` : ''}
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      } catch (error) {
+        container.innerHTML = `<div class="error">Failed to load orders: ${error.message}</div>`;
+      }
+    }
+
+    async function createOrder() {
+      try {
+        // Orders are created through checkout - this creates a pending order
+        // and redirects to the payment gateway
+        const session = await paycan.checkout.create({
+          product_id: 'product-123',
+          product_price_id: 'price-123',
+          gateway: 'stripe'
+        });
+
+        window.location.href = session.checkout_url;
+      } catch (error) {
+        alert('Failed to create order: ' + error.message);
+      }
+    }
+
+    async function viewOrder(orderId) {
+      try {
+        const { data: order } = await paycan.orders.get(orderId);
+        alert(JSON.stringify(order, null, 2));
+      } catch (error) {
+        alert('Failed to load order: ' + error.message);
+      }
+    }
+
+    async function getDownloads(orderId) {
+      try {
+        const { downloads } = await paycan.orders.getDownloads(orderId);
+
+        if (downloads.length === 0) {
+          alert('No downloads available for this order');
+          return;
+        }
+
+        let message = 'Downloads:\n\n';
+        downloads.forEach(download => {
+          message += `${download.product_title}\n`;
+          message += `URL: ${download.download_url}\n`;
+          if (download.expires_at) {
+            message += `Expires: ${new Date(download.expires_at).toLocaleString()}\n`;
+          }
+          message += '\n';
+        });
+
+        alert(message);
+      } catch (error) {
+        alert('Failed to get downloads: ' + error.message);
+      }
+    }
+
+    // ==========================================
+    // Subscriptions
+    // ==========================================
+
+    async function loadSubscriptions() {
+      const container = document.getElementById('subscriptions-container');
+      container.innerHTML = '<div class="loading">Loading subscriptions...</div>';
+
+      try {
+        const response = await paycan.subscriptions.list();
+        const subscriptions = response.data || [];
+
+        if (subscriptions.length === 0) {
+          container.innerHTML = '<p>No active subscriptions</p>';
+          return;
+        }
+
+        let html = '';
+        subscriptions.forEach(sub => {
+          html += `
+            <div class="order">
+              <h3>${sub.product_price?.product?.title || 'Subscription'}</h3>
+              <p><span class="status status-${sub.status}">${sub.status}</span></p>
+              <p>Price: $${sub.product_price?.amount} / ${sub.product_price?.billing_period}</p>
+              ${sub.current_period_end ?
+                `<p>Next billing: ${new Date(sub.current_period_end).toLocaleDateString()}</p>` : ''}
+              ${sub.status === 'active' ?
+                `<button onclick="cancelSubscription('${sub.id}')">Cancel</button>` : ''}
+              ${sub.status === 'cancelled' && sub.cancel_at ?
+                `<button onclick="resumeSubscription('${sub.id}')">Resume</button>` : ''}
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      } catch (error) {
+        container.innerHTML = `<div class="error">Failed to load subscriptions: ${error.message}</div>`;
+      }
+    }
+
+    async function checkAccess() {
+      try {
+        const activeSubscriptions = await paycan.subscriptions.listActive();
+        const hasAccess = activeSubscriptions.some(
+          (sub) => sub.product?.name === 'Premium SaaS Plan'
+        );
+
+        if (hasAccess) {
+          alert('✓ You have premium access!');
+        } else {
+          alert('✗ No premium access. Please subscribe.');
+        }
+      } catch (error) {
+        alert('Failed to check access: ' + error.message);
+      }
+    }
+
+    async function cancelSubscription(subId) {
+      if (!confirm('Are you sure you want to cancel?')) return;
+
+      try {
+        await paycan.subscriptions.cancel(subId);
+        alert('Subscription cancelled successfully');
+        loadSubscriptions();
+      } catch (error) {
+        alert('Failed to cancel: ' + error.message);
+      }
+    }
+
+    async function resumeSubscription(subId) {
+      try {
+        await paycan.subscriptions.resume(subId);
+        alert('Subscription resumed successfully');
+        loadSubscriptions();
+      } catch (error) {
+        alert('Failed to resume: ' + error.message);
+      }
+    }
+
+    // ==========================================
+    // Checkout
+    // ==========================================
+
+    async function createCheckout() {
+      try {
+        const session = await paycan.checkout.create({
+          product_id: 'product-premium',
+          product_price_id: 'price-premium-monthly',
+          gateway: 'stripe'
+        });
+
+        // Redirect to checkout
+        window.location.href = session.checkout_url;
+      } catch (error) {
+        alert('Checkout failed: ' + error.message);
+      }
+    }
+
+    // Check for success parameter on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true') {
+        alert('Payment successful! Thank you for your purchase.');
+        // Remove success parameter from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    });
+
+    // Module scope is not global - expose the handlers used by the inline onclick attributes
+    Object.assign(window, {
+      authenticate,
+      loadOrders,
+      createOrder,
+      viewOrder,
+      getDownloads,
+      loadSubscriptions,
+      checkAccess,
+      cancelSubscription,
+      resumeSubscription,
+      createCheckout,
+    });
+  </script>
+</body>
+</html>

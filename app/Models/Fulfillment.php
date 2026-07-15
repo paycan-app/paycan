@@ -2,17 +2,22 @@
 
 namespace App\Models;
 
+use App\Traits\HasStringId;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Fulfillment extends Model
 {
+    use HasFactory, HasStringId;
+
     protected $fillable = [
+        'id',
         'order_id',
         'status',
         'type',
-        'tracking_number',
-        'carrier',
+        'tracking_id',
+        'provider',
         'meta',
         'fulfilled_at',
     ];
@@ -37,7 +42,7 @@ class Fulfillment extends Model
         return ['digital', 'physical', 'service', 'subscription_access'];
     }
 
-    public static function getCarriers(): array
+    public static function getProviders(): array
     {
         return ['UPS', 'FedEx', 'USPS', 'DHL', 'Other'];
     }

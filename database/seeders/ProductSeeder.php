@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Product;
 use App\Models\ProductPrice;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
@@ -30,8 +31,8 @@ class ProductSeeder extends Seeder
                         'Unlimited projects',
                         'Premium templates',
                         '24/7 support',
-                        'Cloud sync'
-                    ]
+                        'Cloud sync',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -42,8 +43,8 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_digital_standard'],
-                            'paypal' => ['plan_id' => 'digital_standard_plan']
-                        ]
+                            'paypal' => ['plan_id' => 'digital_standard_plan'],
+                        ],
                     ],
                     [
                         'title' => 'Team License',
@@ -53,10 +54,10 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_digital_team'],
-                            'paypal' => ['plan_id' => 'digital_team_plan']
-                        ]
-                    ]
-                ]
+                            'paypal' => ['plan_id' => 'digital_team_plan'],
+                        ],
+                    ],
+                ],
             ],
             [
                 'title' => 'Complete Laravel Course',
@@ -72,8 +73,8 @@ class ProductSeeder extends Seeder
                         '12 modules',
                         '150+ lessons',
                         'Source code',
-                        'Certificate'
-                    ]
+                        'Certificate',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -84,11 +85,11 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_course_full'],
-                            'paypal' => ['plan_id' => 'course_full_plan']
-                        ]
-                    ]
-                ]
-            ]
+                            'paypal' => ['plan_id' => 'course_full_plan'],
+                        ],
+                    ],
+                ],
+            ],
         ];
 
         // Physical Products
@@ -108,8 +109,8 @@ class ProductSeeder extends Seeder
                         'Active noise cancellation',
                         '30-hour battery life',
                         'Wireless charging case',
-                        'Hi-Fi sound quality'
-                    ]
+                        'Hi-Fi sound quality',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -120,10 +121,10 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_headphones'],
-                            'paypal' => ['plan_id' => 'headphones_plan']
-                        ]
-                    ]
-                ]
+                            'paypal' => ['plan_id' => 'headphones_plan'],
+                        ],
+                    ],
+                ],
             ],
             [
                 'title' => 'Smart Fitness Tracker',
@@ -140,8 +141,8 @@ class ProductSeeder extends Seeder
                         'Heart rate monitoring',
                         'Sleep tracking',
                         '50+ workout modes',
-                        'Smartphone notifications'
-                    ]
+                        'Smartphone notifications',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -152,11 +153,11 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_fitness_tracker'],
-                            'paypal' => ['plan_id' => 'fitness_tracker_plan']
-                        ]
-                    ]
-                ]
-            ]
+                            'paypal' => ['plan_id' => 'fitness_tracker_plan'],
+                        ],
+                    ],
+                ],
+            ],
         ];
 
         // Service Products
@@ -175,8 +176,8 @@ class ProductSeeder extends Seeder
                         'Design strategy session',
                         'Wireframe review',
                         'Brand consultation',
-                        'Follow-up report'
-                    ]
+                        'Follow-up report',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -187,10 +188,10 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_design_consultation'],
-                            'paypal' => ['plan_id' => 'design_consultation_plan']
-                        ]
-                    ]
-                ]
+                            'paypal' => ['plan_id' => 'design_consultation_plan'],
+                        ],
+                    ],
+                ],
             ],
             [
                 'title' => 'Monthly Business Consulting',
@@ -206,8 +207,8 @@ class ProductSeeder extends Seeder
                         'Weekly strategy calls',
                         'Growth planning',
                         'Market analysis',
-                        'Monthly reports'
-                    ]
+                        'Monthly reports',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -218,11 +219,11 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_business_consulting'],
-                            'paypal' => ['plan_id' => 'business_consulting_plan']
-                        ]
-                    ]
-                ]
-            ]
+                            'paypal' => ['plan_id' => 'business_consulting_plan'],
+                        ],
+                    ],
+                ],
+            ],
         ];
 
         // Subscription Products
@@ -241,8 +242,8 @@ class ProductSeeder extends Seeder
                         'File sharing & collaboration',
                         'Automatic backup',
                         'Version history',
-                        'Priority support'
-                    ]
+                        'Priority support',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -253,8 +254,8 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_cloud_monthly'],
-                            'paypal' => ['plan_id' => 'cloud_monthly_plan']
-                        ]
+                            'paypal' => ['plan_id' => 'cloud_monthly_plan'],
+                        ],
                     ],
                     [
                         'title' => 'Annual Plan',
@@ -264,10 +265,10 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_cloud_yearly'],
-                            'paypal' => ['plan_id' => 'cloud_yearly_plan']
-                        ]
-                    ]
-                ]
+                            'paypal' => ['plan_id' => 'cloud_yearly_plan'],
+                        ],
+                    ],
+                ],
             ],
             [
                 'title' => 'Pro Developer Tools',
@@ -283,8 +284,8 @@ class ProductSeeder extends Seeder
                         'Unlimited projects',
                         'Advanced analytics',
                         'Priority support',
-                        'Custom integrations'
-                    ]
+                        'Custom integrations',
+                    ],
                 ],
                 'prices' => [
                     [
@@ -295,8 +296,8 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_dev_tools_monthly'],
-                            'paypal' => ['plan_id' => 'dev_tools_monthly_plan']
-                        ]
+                            'paypal' => ['plan_id' => 'dev_tools_monthly_plan'],
+                        ],
                     ],
                     [
                         'title' => 'Annual Pro',
@@ -306,11 +307,11 @@ class ProductSeeder extends Seeder
                         'is_active' => true,
                         'gateway_data' => [
                             'stripe' => ['price_id' => 'price_dev_tools_yearly'],
-                            'paypal' => ['plan_id' => 'dev_tools_yearly_plan']
-                        ]
-                    ]
-                ]
-            ]
+                            'paypal' => ['plan_id' => 'dev_tools_yearly_plan'],
+                        ],
+                    ],
+                ],
+            ],
         ];
 
         // Create all products and their prices
@@ -326,18 +327,24 @@ class ProductSeeder extends Seeder
             $productData['slug'] = preg_replace('/-+/', '-', $productData['slug']);
             $productData['slug'] = trim($productData['slug'], '-');
 
+            // Add ULID for the product
+            $productData['id'] = Str::ulid()->toString();
+
             $product = Product::create($productData);
 
             foreach ($prices as $priceData) {
                 $priceData['product_id'] = $product->id;
-                
+
                 // Generate slug for price from title
                 $priceData['slug'] = strtolower(str_replace([' ', '/', '&', '-'], ['-', '-', 'and', '-'], $priceData['title']));
                 $priceData['slug'] = preg_replace('/[^a-z0-9\-]/', '', $priceData['slug']);
                 $priceData['slug'] = preg_replace('/-+/', '-', $priceData['slug']);
                 $priceData['slug'] = trim($priceData['slug'], '-');
-                $priceData['slug'] = $product->slug . '-' . $priceData['slug'];
-                
+                $priceData['slug'] = $product->slug.'-'.$priceData['slug'];
+
+                // Add ULID for the product price
+                $priceData['id'] = Str::ulid()->toString();
+
                 ProductPrice::create($priceData);
             }
         }

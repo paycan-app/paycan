@@ -11,9 +11,23 @@
 |
 */
 
+// Configure BaseApiTest for API tests in Feature/Api subfolder
+pest()->extend(Tests\Feature\BaseApiTest::class)
+    ->in('Feature/Api');
+
+// Configure Portal tests
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature/Portal');
+
+// Configure Settings tests
+pest()->extend(Tests\TestCase::class)
+    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in('Feature/Settings');
+
+// Configure TestCase for Unit tests
+pest()->extend(Tests\TestCase::class)
+    ->in('Unit');
 
 /*
 |--------------------------------------------------------------------------

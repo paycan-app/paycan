@@ -10,8 +10,26 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('product_price_id')->constrained();
+
+            $table->string('user_id');
+            $table->string('product_id');
+            $table->string('product_price_id');
+
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users');
+
+            $table->foreign('product_id')
+                ->references('id')
+                ->on('products');
+
+            $table->foreign('product_price_id')
+                ->references('id')
+                ->on('product_prices');
+
+            // $table->foreignId('user_id')->constrained();
+            // $table->foreignId('product_id')->constrained();
+            // $table->foreignId('product_price_id')->constrained();
             $table->string('order_number')->unique();
             $table->string('status'); // pending, processing, completed, failed, cancelled, refunded
             $table->decimal('total', 10, 2);
@@ -32,6 +50,7 @@ return new class extends Migration
             $table->json('meta')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
         });
     }
 

@@ -13,8 +13,9 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         $title = fake()->words(3, true);
-        
+
         return [
+            'id' => Str::ulid()->toString(),
             'title' => $title,
             'slug' => Str::slug($title),
             'description' => fake()->sentences(3, true),

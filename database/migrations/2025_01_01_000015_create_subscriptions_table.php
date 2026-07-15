@@ -10,8 +10,23 @@ return new class extends Migration
     {
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('product_price_id')->constrained();
+
+            $table->string('user_id');
+            $table->string('product_id');
+            $table->string('product_price_id');
+
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users');
+
+            $table->foreign('product_id')
+                ->references('id')
+                ->on('products');
+
+            $table->foreign('product_price_id')
+                ->references('id')
+                ->on('product_prices');
+
             $table->foreignId('order_id')->constrained(); // Initial order
             $table->string('title'); // Name of the subscription
             $table->string('status'); // active, trialing, past_due, canceled, incomplete, incomplete_expired
@@ -23,6 +38,7 @@ return new class extends Migration
             $table->timestamp('ends_at')->nullable();
             $table->timestamp('next_billing_date')->nullable();
             $table->timestamp('canceled_at')->nullable();
+            $table->json('meta')->nullable();
             $table->timestamps();
         });
     }

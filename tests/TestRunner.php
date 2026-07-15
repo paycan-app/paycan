@@ -1,10 +1,12 @@
 <?php
 
+namespace Tests;
+
 /**
  * E2E Test Runner for Laravel 12 + Vue 3 Payment System
- * 
+ *
  * Usage: php tests/TestRunner.php [test_group]
- * 
+ *
  * Available test groups:
  * - all: Run all E2E tests
  * - subscription: Subscription flow tests
@@ -13,7 +15,6 @@
  * - service: Service product tests
  * - validation: Validation and error tests
  */
-
 class TestRunner
 {
     private $testGroups = [
@@ -45,6 +46,7 @@ class TestRunner
             $this->runTestGroup($group);
         } else {
             $this->showUsage();
+
             return;
         }
 
@@ -64,7 +66,7 @@ class TestRunner
         echo "─────────────────────────────────\n";
 
         $tests = $this->testGroups[$groupName];
-        
+
         foreach ($tests as $testFile) {
             $this->runTest($testFile);
         }
@@ -76,8 +78,8 @@ class TestRunner
     {
         $command = "php artisan test {$testFile} --colors=always";
         echo "▶️  Running: {$testFile}\n";
-        
-        $output = shell_exec($command . ' 2>&1');
+
+        $output = shell_exec($command.' 2>&1');
         echo $output;
     }
 
@@ -86,11 +88,11 @@ class TestRunner
         echo "Usage: php tests/TestRunner.php [test_group]\n\n";
         echo "Available test groups:\n";
         echo "- all: Run all E2E tests\n";
-        
+
         foreach ($this->testGroups as $group => $tests) {
-            echo "- {$group}: " . $this->getGroupDescription($group) . "\n";
+            echo "- {$group}: ".$this->getGroupDescription($group)."\n";
         }
-        
+
         echo "\nExample: php tests/TestRunner.php subscription\n";
     }
 
@@ -110,5 +112,5 @@ class TestRunner
 
 // Run the test runner
 $group = $argv[1] ?? 'all';
-$runner = new TestRunner();
+$runner = new \Tests\TestRunner;
 $runner->run($group);

@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Product;
 use App\Models\ProductPrice;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class ProductPriceFactory extends Factory
 {
@@ -13,6 +14,7 @@ class ProductPriceFactory extends Factory
     public function definition(): array
     {
         return [
+            'id' => Str::ulid()->toString(),
             'product_id' => Product::factory(),
             'title' => fake()->randomElement(['Basic', 'Standard', 'Premium', 'Enterprise']),
             'slug' => fake()->slug(),
@@ -22,10 +24,10 @@ class ProductPriceFactory extends Factory
             'trial_days' => 0,
             'gateway_data' => [
                 'stripe' => [
-                    'price_id' => 'price_' . fake()->regexify('[A-Za-z0-9]{24}'),
+                    'price_id' => 'price_'.fake()->regexify('[A-Za-z0-9]{24}'),
                 ],
                 'paypal' => [
-                    'plan_id' => 'P-' . fake()->regexify('[A-Z0-9]{17}'),
+                    'plan_id' => 'P-'.fake()->regexify('[A-Z0-9]{17}'),
                 ],
             ],
             'is_active' => true,

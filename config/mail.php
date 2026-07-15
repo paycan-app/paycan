@@ -61,6 +61,14 @@ return [
             // ],
         ],
 
+        // Add Mailgun mailer (required when selecting 'mailgun' driver)
+        'mailgun' => [
+            'transport' => 'mailgun',
+            // 'client' => [
+            //     'timeout' => 5,
+            // ],
+        ],
+
         'resend' => [
             'transport' => 'resend',
         ],

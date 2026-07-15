@@ -2,22 +2,20 @@
 
 namespace App\Notifications;
 
+use App\Models\Order;
+use App\Services\Notifications\NotificationTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PaymentSuccessNotification extends Notification
+class PaymentSuccessNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+    public function __construct(
+        protected Order $order
+    ) {}
 
     /**
      * Get the notification's delivery channels.
@@ -26,6 +24,12 @@ class PaymentSuccessNotification extends Notification
      */
     public function via(object $notifiable): array
     {
+        $templateService = app(NotificationTemplateService::class);
+
+        if (! $templateService->isEnabled('order_confirmation')) {
+            return [];
+        }
+
         return ['mail'];
     }
 
@@ -34,10 +38,37 @@ class PaymentSuccessNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
+        $templateService = app(NotificationTemplateService::class);
+        $template = $templateService->getTemplate('order_confirmation');
+        $mailConfig = $templateService->getMailConfig();
+
+        $productTitle = optional($this->order->product)->title ?? 'Product';
+        $unitPrice = optional($this->order->productPrice)->amount ?? $this->order->total;
+        $quantity = $this->order->quantity ?? 1;
+        $items = "- {$productTitle} (x{$quantity}): {$this->order->currency} " . number_format($unitPrice, 2);
+
+        $variables = [
+            'customer_name' => $notifiable->name,
+            'order_number' => $this->order->order_number,
+            'order_date' => $this->order->created_at->format('F d, Y'),
+            'total' => $this->order->currency . ' ' . number_format($this->order->total, 2),
+            'items' => $items,
+            'shipping_address' => $this->order->billing_address ?? 'N/A',
+        ];
+
+        $subject = $templateService->render($template['subject'], $variables);
+        $body = $templateService->render($template['body'], $variables);
+
+        $message = (new MailMessage)
+            ->from($mailConfig['from']['address'], $mailConfig['from']['name'])
+            ->subject($subject)
+            ->markdown('emails.custom-markdown', ['content' => $body]);
+
+        if ($mailConfig['mailer']) {
+            $message->mailer($mailConfig['mailer']);
+        }
+
+        return $message;
     }
 
     /**
@@ -48,7 +79,8 @@ class PaymentSuccessNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'order_id' => $this->order->id,
+            'order_number' => $this->order->order_number,
         ];
     }
 }

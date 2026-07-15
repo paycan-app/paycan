@@ -3,7 +3,6 @@
 namespace App\Services\Payment;
 
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\ProductPrice;
 use App\Models\Subscription;
 use App\Models\User;
@@ -31,12 +30,13 @@ class PaymentService
 
             $order = Order::create([
                 'user_id' => $user->id,
+                'product_id' => $productPrice->product_id,
                 'product_price_id' => $productPrice->id,
                 'order_number' => $this->generateOrderNumber(),
                 'status' => 'pending',
                 'total' => $total,
                 'currency' => $productPrice->currency,
-                'tax' => 0, // Calculate tax if needed
+                'tax' => 0,
                 'billing_email' => $user->email,
                 'billing_name' => $user->name,
                 'gateway' => $gateway,
@@ -110,12 +110,13 @@ class PaymentService
             // Create an order for the initial payment
             $order = Order::create([
                 'user_id' => $user->id,
+                'product_id' => $productPrice->product_id,
                 'product_price_id' => $productPrice->id,
                 'order_number' => $this->generateOrderNumber(),
                 'status' => 'pending',
                 'total' => $productPrice->amount,
                 'currency' => $productPrice->currency,
-                'tax' => 0, // Calculate tax if needed
+                'tax' => 0,
                 'billing_email' => $user->email,
                 'billing_name' => $user->name,
                 'gateway' => $gateway,
@@ -124,6 +125,7 @@ class PaymentService
             // Create a subscription record
             $subscription = Subscription::create([
                 'user_id' => $user->id,
+                'product_id' => $productPrice->product_id,
                 'product_price_id' => $productPrice->id,
                 'order_id' => $order->id,
                 'title' => $productPrice->product->title.' - '.$productPrice->title,
@@ -183,30 +185,40 @@ class PaymentService
         }
     }
 
-    public function cancelSubscription(Subscription $subscription)
+    /**
+     * Cancel a subscription at the payment gateway and sync local state.
+     *
+     * By default the subscription is cancelled at the end of the current billing
+     * period. Pass $immediately = true to stop it right away.
+     */
+    public function cancelSubscription(Subscription $subscription, bool $immediately = false)
     {
         try {
             $paymentGateway = PaymentGatewayFactory::create($subscription->gateway);
-
-            $response = $paymentGateway->cancelSubscription($subscription->gateway_subscription_id);
+            $response = $paymentGateway->cancelSubscription($subscription->gateway_subscription_id, $immediately);
 
             if ($response['success']) {
-                // Use the gateway-provided data instead of manual calculation
                 $endsAt = null;
                 if (isset($response['current_period_end'])) {
-                    // Stripe returns timestamps, convert to Carbon date
-                    $endsAt = \Carbon\Carbon::createFromTimestamp($response['current_period_end']);
+                    $cpe = $response['current_period_end'];
+                    $endsAt = is_numeric($cpe)
+                        ? \Carbon\Carbon::createFromTimestamp($cpe)
+                        : \Carbon\Carbon::parse($cpe);
                 }
 
                 $canceledAt = null;
                 if (isset($response['canceled_at'])) {
-                    $canceledAt = \Carbon\Carbon::createFromTimestamp($response['canceled_at']);
+                    $ca = $response['canceled_at'];
+                    $canceledAt = is_numeric($ca)
+                        ? \Carbon\Carbon::createFromTimestamp($ca)
+                        : \Carbon\Carbon::parse($ca);
                 }
 
                 $subscription->update([
                     'status' => 'canceled',
+                    'gateway_status' => $response['gateway_status'] ?? ($response['status'] ?? null),
                     'canceled_at' => $canceledAt ?? now(),
-                    'ends_at' => $endsAt ?? now(), // Fallback to now() only if gateway doesn't provide it
+                    'ends_at' => $immediately ? now() : ($endsAt ?? now()),
                 ]);
             }
 
@@ -221,12 +233,12 @@ class PaymentService
     {
         try {
             $paymentGateway = PaymentGatewayFactory::create($subscription->gateway);
-
             $response = $paymentGateway->resumeSubscription($subscription->gateway_subscription_id);
 
             if ($response['success']) {
                 $subscription->update([
                     'status' => 'active',
+                    'gateway_status' => $response['status'] ?? null,
                     'canceled_at' => null,
                     'ends_at' => null,
                 ]);
@@ -273,7 +285,9 @@ class PaymentService
                 $newPriceId
             );
 
-            if ($response['success']) {
+            // When the gateway requires customer approval (PayPal revise), keep the
+            // local plan unchanged until the approval webhook confirms the switch
+            if ($response['success'] && empty($response['approval_url'])) {
                 $subscription->update([
                     'product_price_id' => $newProductPrice->id,
                     'title' => $newProductPrice->product->title.' - '.$newProductPrice->title,
@@ -309,5 +323,25 @@ class PaymentService
     protected function generateOrderNumber()
     {
         return 'ORD-'.time().'-'.rand(1000, 9999);
+    }
+
+    /**
+     * Calculate order totals for a product price.
+     *
+     * Tax is intentionally not calculated here: it is handled by the payment
+     * gateway (Stripe Tax / PayPal tax settings), so the recorded total always
+     * matches the amount the gateway charges.
+     *
+     * @return array{subtotal: float, total: float, currency: string}
+     */
+    public function calculateTotals(ProductPrice $price, int $quantity = 1): array
+    {
+        $subtotal = round($price->amount * $quantity, 2);
+
+        return [
+            'subtotal' => $subtotal,
+            'total' => $subtotal,
+            'currency' => $price->currency,
+        ];
     }
 }

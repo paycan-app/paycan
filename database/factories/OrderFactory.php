@@ -13,10 +13,13 @@ class OrderFactory extends Factory
 
     public function definition(): array
     {
+        $productPrice = ProductPrice::factory()->create();
+
         return [
             'user_id' => User::factory(),
-            'product_price_id' => ProductPrice::factory(),
-            'order_number' => 'ORD-' . fake()->unique()->numerify('########'),
+            'product_id' => $productPrice->product_id,
+            'product_price_id' => $productPrice->id,
+            'order_number' => 'ORD-'.fake()->unique()->numerify('########'),
             'status' => fake()->randomElement(Order::getStatuses()),
             'total' => fake()->randomFloat(2, 9.99, 999.99),
             'currency' => 'USD',
@@ -68,7 +71,7 @@ class OrderFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'gateway' => 'stripe',
-            'gateway_order_id' => 'cs_' . fake()->regexify('[A-Za-z0-9]{50}'),
+            'gateway_order_id' => 'cs_'.fake()->regexify('[A-Za-z0-9]{50}'),
         ]);
     }
 

@@ -1,0 +1,49 @@
+{
+  "name": "@paycan/sdk",
+  "version": "1.0.0",
+  "description": "Official JavaScript SDK for PayCan - Payment integration made simple",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "paycan",
+    "payment",
+    "subscription",
+    "integration",
+    "sdk",
+    "javascript",
+    "typescript"
+  ],
+  "author": "PayCan",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "rollup": "^3.0.0",
+    "tslib": "^2.6.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paycan/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/paycan/sdk/issues"
+  },
+  "homepage": "https://paycan.com/docs/sdk/front",
+  "type": "module",
+  "dependencies": {
+    "@paycan/sdk": "file:paycan-sdk-1.0.0.tgz"
+  }
+}

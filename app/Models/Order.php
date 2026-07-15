@@ -15,6 +15,7 @@ class Order extends Model
 
     protected $fillable = [
         'user_id',
+        'product_id',
         'product_price_id',
         'order_number',
         'status',
@@ -49,6 +50,11 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
     public function productPrice(): BelongsTo
     {
         return $this->belongsTo(ProductPrice::class);
@@ -71,12 +77,12 @@ class Order extends Model
 
     public static function getStatuses(): array
     {
-        return ['pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded'];
+        return ['pending', 'processing', 'paid', 'completed', 'failed', 'cancelled', 'refunded'];
     }
 
     public static function getGateways(): array
     {
-        return ['stripe', 'paypal', 'square'];
+        return ['stripe', 'paypal'];
     }
 
     public function scopeCreatedAfter($query, $date)
@@ -87,5 +93,70 @@ class Order extends Model
     public function scopeCreatedBefore($query, $date)
     {
         return $query->where('created_at', '<=', $date);
+    }
+
+    /**
+     * Generate a secure cancellation token for this order
+     */
+    public function generateCancellationToken(): string
+    {
+        $token = bin2hex(random_bytes(32));
+
+        $this->update([
+            'meta' => array_merge($this->meta ?? [], [
+                'cancellation_token' => $token,
+                'cancellation_token_created_at' => now()->toIso8601String(),
+            ]),
+        ]);
+
+        return $token;
+    }
+
+    /**
+     * Validate a cancellation token
+     */
+    public function validateCancellationToken(string $token): bool
+    {
+        $storedToken = $this->meta['cancellation_token'] ?? null;
+        $tokenCreatedAt = $this->meta['cancellation_token_created_at'] ?? null;
+
+        if (! $storedToken || ! $tokenCreatedAt) {
+            return false;
+        }
+
+        // Token expires after 3 hours
+        $expiresAt = \Carbon\Carbon::parse($tokenCreatedAt)->addHours(3);
+        if (now()->greaterThan($expiresAt)) {
+            return false;
+        }
+
+        // Use hash_equals to prevent timing attacks
+        return hash_equals($storedToken, $token);
+    }
+
+    /**
+     * Invalidate the cancellation token (one-time use)
+     */
+    public function invalidateCancellationToken(): void
+    {
+        $meta = $this->meta ?? [];
+        unset($meta['cancellation_token']);
+        unset($meta['cancellation_token_created_at']);
+
+        $this->update(['meta' => $meta]);
+    }
+
+    /**
+     * Get the cancellation token (or generate if not exists)
+     */
+    public function getCancellationToken(): string
+    {
+        $token = $this->meta['cancellation_token'] ?? null;
+
+        if (! $token) {
+            return $this->generateCancellationToken();
+        }
+
+        return $token;
     }
 }
