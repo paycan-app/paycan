@@ -1,4 +1,4 @@
-# PayCan
+#  PayCan
 
 PayCan is a self-hosted payment-integration platform. External applications use its ready-to-use web components and API to accept different payment methods in ~10 lines of code.
 

@@ -26,6 +26,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/.playwright-mcp
 
 # IDE Helper files
 _ide_helper.php
