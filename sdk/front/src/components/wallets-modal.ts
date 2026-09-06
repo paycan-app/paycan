@@ -26,7 +26,6 @@ export class WalletsModal {
   private modal: HTMLElement | null = null;
   private wallets: Wallet[] = [];
   private transactions: WalletTransaction[] = [];
-  private activeTab: 'all' | 'usages' = 'all';
   private loading: boolean = false;
   private currentPage: number = 1;
   private totalPages: number = 1;
@@ -78,11 +77,8 @@ export class WalletsModal {
       const walletRes = await this.sdk.wallets.list();
       this.wallets = walletRes.data || [];
 
-      // 2. Fetch transactions based on active tab
-      const txRes =
-        this.activeTab === 'usages'
-          ? await this.sdk.wallets.usages({ page, per_page: 10 })
-          : await this.sdk.wallets.transactions({ page, per_page: 10 });
+      // 2. Fetch all activity transactions
+      const txRes = await this.sdk.wallets.transactions({ page, per_page: 10 });
 
       this.transactions = txRes.data || [];
       this.currentPage = txRes.meta?.current_page || 1;
@@ -160,8 +156,8 @@ export class WalletsModal {
     return `
       <div class="paycan-modal-header">
         <div class="paycan-header-content">
-          <h2 class="paycan-modal-title">Credit Wallets & Usage</h2>
-          <p class="paycan-modal-subtitle">Manage AI credits, track token deductions, and view usage logs.</p>
+          <h2 class="paycan-modal-title">Wallets & Credits</h2>
+          <p class="paycan-modal-subtitle">View wallet balances, transactions, and usage history.</p>
         </div>
         <button class="paycan-close-btn" aria-label="Close">×</button>
       </div>
@@ -179,32 +175,23 @@ export class WalletsModal {
   }
 
   private renderBody(): string {
+    const walletsToRender =
+      this.wallets.length > 0
+        ? this.wallets
+        : [
+            { type: 'basic', balance: 0, currency: 'credits' } as Wallet,
+            { type: 'premium', balance: 0, currency: 'credits' } as Wallet,
+          ];
+
     return `
       <!-- Wallet Balances Cards -->
       <div class="paycan-wallets-grid">
-        ${this.renderWalletCard('basic', 'Basic Credits', 'Standard models & daily tasks', 'blue')}
-        ${this.renderWalletCard('premium', 'Premium Credits', 'Frontier models & high reasoning', 'purple')}
+        ${walletsToRender.map((w) => this.renderWalletCard(w)).join('')}
       </div>
 
-      <!-- Top-up Banner -->
-      <div class="paycan-topup-banner">
-        <div>
-          <div class="paycan-banner-title">Need additional credits?</div>
-          <div class="paycan-banner-desc">Top up your balance instantly or upgrade your subscription plan.</div>
-        </div>
-        <button class="paycan-btn paycan-btn-primary paycan-btn-sm paycan-topup-btn">
-          Get More Credits
-        </button>
-      </div>
-
-      <!-- Navigation Tabs -->
-      <div class="paycan-tabs">
-        <button class="paycan-tab ${this.activeTab === 'all' ? 'active' : ''}" data-tab="all">
-          All Activity
-        </button>
-        <button class="paycan-tab ${this.activeTab === 'usages' ? 'active' : ''}" data-tab="usages">
-          AI Usage Logs
-        </button>
+      <!-- Activity Table Section -->
+      <div class="paycan-section-header">
+        <h3 class="paycan-section-title">Activity</h3>
       </div>
 
       <!-- Table Section -->
@@ -212,25 +199,24 @@ export class WalletsModal {
     `;
   }
 
-  private renderWalletCard(type: string, title: string, subtitle: string, color: 'blue' | 'purple'): string {
-    const wallet = this.wallets.find((w) => w.type === type);
-    const balance = wallet ? Number(wallet.balance) : 0;
+  private renderWalletCard(wallet: Wallet): string {
+    const balance = Number(wallet.balance) || 0;
     const formattedBalance = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(balance);
+    const title = (wallet.type || 'basic').charAt(0).toUpperCase() + (wallet.type || 'basic').slice(1) + ' Wallet';
+    const currency = wallet.currency || 'credits';
 
     return `
-      <div class="paycan-wallet-card paycan-wallet-${color}">
+      <div class="paycan-wallet-card">
         <div class="paycan-card-header">
-          <div class="paycan-card-badge">${type === 'premium' ? '⚡ High Priority' : '✓ Active'}</div>
           <div class="paycan-card-type">${title}</div>
         </div>
         <div class="paycan-card-balance">
           <span class="paycan-balance-num">${formattedBalance}</span>
-          <span class="paycan-balance-unit">credits</span>
+          <span class="paycan-balance-unit">${currency}</span>
         </div>
-        <div class="paycan-card-desc">${subtitle}</div>
       </div>
     `;
   }
@@ -240,9 +226,9 @@ export class WalletsModal {
       return `
         <div class="paycan-empty-state">
           <div class="paycan-empty-icon">📊</div>
-          <div class="paycan-empty-title">No credit activity found</div>
+          <div class="paycan-empty-title">No activity found</div>
           <div class="paycan-empty-description">
-            ${this.activeTab === 'usages' ? 'No AI agent usages recorded yet.' : 'No transactions recorded yet.'}
+            No transactions recorded yet.
           </div>
         </div>
       `;
@@ -276,16 +262,6 @@ export class WalletsModal {
     const formattedBalance = Number(tx.balance_after).toFixed(2);
     const actionLabel = tx.action ? tx.action.replace(/_/g, ' ') : 'transaction';
 
-    let metaSnippet = '';
-    if (tx.meta && typeof tx.meta === 'object') {
-      const parts = [];
-      if (tx.meta.model) parts.push(tx.meta.model);
-      if (tx.meta.tokens) parts.push(`${tx.meta.tokens} tokens`);
-      if (parts.length > 0) {
-        metaSnippet = `<span class="paycan-meta-badge">${parts.join(' • ')}</span>`;
-      }
-    }
-
     const refSnippet = tx.reference_id
       ? `<span class="paycan-ref-tag" title="Reference ID">#${tx.reference_id}</span>`
       : '';
@@ -301,14 +277,13 @@ export class WalletsModal {
       <tr>
         <td>
           <span class="paycan-badge ${isCredit ? 'badge-credit' : 'badge-debit'}">
-            ${sign} ${actionLabel}
+            ${actionLabel}
           </span>
         </td>
         <td>
           <div class="paycan-desc-cell">
-            <span class="paycan-desc-text">${tx.description || 'Usage transaction'}</span>
+            <span class="paycan-desc-text">${tx.description || 'Transaction'}</span>
             ${refSnippet}
-            ${metaSnippet}
           </div>
         </td>
         <td class="paycan-date-cell">${formattedDate}</td>
@@ -358,36 +333,6 @@ export class WalletsModal {
     const closeBtn = this.shadowRoot.querySelector('.paycan-close-btn');
     if (closeBtn) {
       closeBtn.addEventListener('click', () => this.close());
-    }
-
-    // Tab buttons
-    const tabs = this.shadowRoot.querySelectorAll('.paycan-tab');
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', async (e) => {
-        const target = e.currentTarget as HTMLElement;
-        const newTab = target.getAttribute('data-tab') as 'all' | 'usages';
-        if (newTab !== this.activeTab) {
-          this.activeTab = newTab;
-          this.currentPage = 1;
-          await this.loadData(1);
-          this.refreshModal();
-        }
-      });
-    });
-
-    // Top-up button
-    const topupBtn = this.shadowRoot.querySelector('.paycan-topup-btn');
-    if (topupBtn) {
-      topupBtn.addEventListener('click', () => {
-        if (this.options.onTopup) {
-          this.options.onTopup();
-        } else if (this.options.onTopupRequested) {
-          this.options.onTopupRequested(this.wallets[0]);
-        } else if (typeof (this.sdk as any).openProductsModal === 'function') {
-          this.close();
-          (this.sdk as any).openProductsModal({ type: 'subscription' });
-        }
-      });
     }
 
     // Pagination buttons
@@ -462,38 +407,17 @@ export class WalletsModal {
 
       .paycan-wallet-card {
         padding: 1.25rem;
-        border-radius: 12px;
+        border-radius: 10px;
         border: 1px solid #e2e8f0;
         background: #ffffff;
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       }
 
       .paycan-theme-dark .paycan-wallet-card {
         background: #1e293b;
         border-color: #334155;
-      }
-
-      .paycan-wallet-blue {
-        border-color: rgba(59, 130, 246, 0.3);
-        background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%);
-      }
-
-      .paycan-theme-dark .paycan-wallet-blue {
-        border-color: rgba(59, 130, 246, 0.3);
-        background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
-      }
-
-      .paycan-wallet-purple {
-        border-color: rgba(168, 85, 247, 0.3);
-        background: linear-gradient(145deg, #ffffff 0%, #faf5ff 100%);
-      }
-
-      .paycan-theme-dark .paycan-wallet-purple {
-        border-color: rgba(168, 85, 247, 0.3);
-        background: linear-gradient(145deg, #0f172a 0%, #2e1065 100%);
       }
 
       .paycan-card-header {
@@ -510,20 +434,6 @@ export class WalletsModal {
 
       .paycan-theme-dark .paycan-card-type {
         color: #f8fafc;
-      }
-
-      .paycan-card-badge {
-        font-size: 0.6875rem;
-        font-weight: 600;
-        padding: 0.125rem 0.5rem;
-        border-radius: 9999px;
-        background: rgba(0, 0, 0, 0.05);
-        color: #475569;
-      }
-
-      .paycan-theme-dark .paycan-card-badge {
-        background: rgba(255, 255, 255, 0.1);
-        color: #cbd5e1;
       }
 
       .paycan-card-balance {
@@ -549,93 +459,20 @@ export class WalletsModal {
         color: #64748b;
       }
 
-      .paycan-card-desc {
-        font-size: 0.75rem;
-        color: #64748b;
-        line-height: 1.4;
+      /* Activity Section Header */
+      .paycan-section-header {
+        margin-bottom: 0.75rem;
       }
 
-      .paycan-theme-dark .paycan-card-desc {
-        color: #94a3b8;
-      }
-
-      /* Topup Banner */
-      .paycan-topup-banner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 0.875rem 1.25rem;
-        border-radius: 10px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 1.25rem;
-      }
-
-      .paycan-theme-dark .paycan-topup-banner {
-        background: #0f172a;
-        border-color: #334155;
-      }
-
-      .paycan-banner-title {
-        font-size: 0.875rem;
+      .paycan-section-title {
+        margin: 0;
+        font-size: 0.9375rem;
         font-weight: 600;
         color: #0f172a;
       }
 
-      .paycan-theme-dark .paycan-banner-title {
+      .paycan-theme-dark .paycan-section-title {
         color: #f8fafc;
-      }
-
-      .paycan-banner-desc {
-        font-size: 0.75rem;
-        color: #64748b;
-      }
-
-      .paycan-theme-dark .paycan-banner-desc {
-        color: #94a3b8;
-      }
-
-      /* Tabs */
-      .paycan-tabs {
-        display: flex;
-        border-bottom: 1px solid #e2e8f0;
-        margin-bottom: 1rem;
-        gap: 0.5rem;
-      }
-
-      .paycan-theme-dark .paycan-tabs {
-        border-color: #334155;
-      }
-
-      .paycan-tab {
-        background: transparent;
-        border: none;
-        padding: 0.625rem 1rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #64748b;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        transition: all 0.2s;
-      }
-
-      .paycan-theme-dark .paycan-tab {
-        color: #94a3b8;
-      }
-
-      .paycan-tab:hover {
-        color: #0f172a;
-      }
-
-      .paycan-theme-dark .paycan-tab:hover {
-        color: #ffffff;
-      }
-
-      .paycan-tab.active {
-        color: #3b82f6;
-        border-bottom-color: #3b82f6;
-        font-weight: 600;
       }
 
       /* Table Styles */
@@ -704,20 +541,7 @@ export class WalletsModal {
         color: #64748b;
       }
 
-      .paycan-meta-badge {
-        font-size: 0.6875rem;
-        padding: 0.125rem 0.375rem;
-        border-radius: 4px;
-        background: #f1f5f9;
-        color: #475569;
-        display: inline-block;
-        width: fit-content;
-      }
 
-      .paycan-theme-dark .paycan-meta-badge {
-        background: #334155;
-        color: #cbd5e1;
-      }
 
       .paycan-date-cell {
         color: #64748b;

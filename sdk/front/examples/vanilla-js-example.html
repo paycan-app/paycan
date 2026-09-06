@@ -97,7 +97,7 @@
   <div class="section">
     <h2>Wallets &amp; AI Credits</h2>
     <button onclick="loadWallets()" id="load-wallets-btn" disabled>Load Wallets &amp; Balance</button>
-    <button onclick="deductCredits()" id="deduct-credits-btn" disabled>Deduct 2.5 Credits (AI Query)</button>
+    <button onclick="loadUsages()" id="load-usages-btn" disabled>View AI Usage Logs</button>
     <button onclick="openWalletsModal()" id="wallets-modal-btn" disabled>Open Wallets Modal</button>
     <div id="wallets-container"></div>
   </div>
@@ -145,7 +145,7 @@
       document.getElementById('check-access-btn').disabled = false;
       document.getElementById('checkout-btn').disabled = false;
       document.getElementById('load-wallets-btn').disabled = false;
-      document.getElementById('deduct-credits-btn').disabled = false;
+      document.getElementById('load-usages-btn').disabled = false;
       document.getElementById('wallets-modal-btn').disabled = false;
     }
 
@@ -374,19 +374,12 @@
       }
     }
 
-    async function deductCredits() {
+    async function loadUsages() {
       try {
-        const result = await paycan.wallets.deduct({
-          amount: 2.5,
-          type: 'basic',
-          description: 'AI Chat Completion (1,250 tokens)',
-          reference_id: 'task_demo_' + Date.now(),
-          meta: { model: 'gpt-4o-mini', tokens: 1250 }
-        });
-        alert(`Deduction successful! Remaining balance: ${result.wallet?.balance} credits`);
-        loadWallets();
+        const result = await paycan.wallets.usages({ per_page: 5 });
+        alert(`Loaded ${result.data?.length || 0} usage log records. Note: Credit deductions must be executed server-side via Admin API.`);
       } catch (error) {
-        alert('Deduction failed: ' + error.message);
+        alert('Failed to load usages: ' + error.message);
       }
     }
 
@@ -410,7 +403,7 @@
       resumeSubscription,
       createCheckout,
       loadWallets,
-      deductCredits,
+      loadUsages,
       openWalletsModal,
     });
   </script>

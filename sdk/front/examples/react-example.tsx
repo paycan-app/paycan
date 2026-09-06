@@ -326,7 +326,7 @@ export function WalletCredits() {
   const { paycan, isAuthenticated } = usePayCan();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deducting, setDeducting] = useState(false);
+  const [runningTask, setRunningTask] = useState(false);
 
   useEffect(() => {
     loadWallets();
@@ -348,25 +348,25 @@ export function WalletCredits() {
   const handleRunAiAgent = async () => {
     if (!paycan) return;
     try {
-      setDeducting(true);
-      const result = await paycan.wallets.deduct({
-        amount: 2.5,
-        type: 'basic',
-        description: 'AI Code Analysis - 1,250 tokens',
-        reference_id: 'agent_' + Date.now(),
-        meta: { model: 'gpt-4o-mini', tokens: 1250 }
+      setRunningTask(true);
+      // Security note: Credit balance changes (deductions) must always be performed
+      // on your backend server using your PayCan API Secret Key (POST /api/admin/wallets/deduct).
+      const response = await fetch('/api/run-ai-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
-      alert(`AI Agent executed! Remaining balance: ${result.wallet?.balance} credits`);
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'AI Task execution failed');
+      }
+
+      alert('AI Agent completed task! Credits deducted securely via your backend.');
       await loadWallets();
     } catch (err: any) {
-      if (err.error === 'insufficient_credits') {
-        alert('Insufficient credits! Please top up.');
-        paycan.openWalletsModal();
-      } else {
-        alert('Deduction failed: ' + err.message);
-      }
+      alert('Action notice: ' + err.message);
     } finally {
-      setDeducting(false);
+      setRunningTask(false);
     }
   };
 
@@ -379,12 +379,12 @@ export function WalletCredits() {
         {wallets.map((wallet) => (
           <div key={wallet.id} style={{ border: '1px solid #ccc', borderRadius: 8, padding: '1rem' }}>
             <h3>{wallet.type.toUpperCase()} Credits</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{parseFloat(wallet.balance).toFixed(2)}</p>
+            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{parseFloat(String(wallet.balance)).toFixed(2)}</p>
           </div>
         ))}
       </div>
-      <button onClick={handleRunAiAgent} disabled={deducting}>
-        {deducting ? 'Executing...' : 'Run AI Task (-2.5 Credits)'}
+      <button onClick={handleRunAiAgent} disabled={runningTask}>
+        {runningTask ? 'Executing...' : 'Run AI Task (Deducted on Backend)'}
       </button>
       <button onClick={() => paycan?.openWalletsModal()} style={{ marginLeft: 8 }}>
         View Credit History &amp; Usage Logs

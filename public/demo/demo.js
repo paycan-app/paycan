@@ -169,12 +169,10 @@ const snippets = {
       usages: usages.data,
     };
   },
-  'deduct-credits': () => paycan.wallets.deduct({
-    amount: 2.5,
-    type: 'basic',
-    description: 'AI Chat Completion (1,250 tokens)',
-    reference_id: 'req_ai_98234a',
-    meta: { model: 'gpt-4o-mini', tokens: 1250 },
+  'wallet-usages': () => paycan.wallets.usages({
+    page: 1,
+    per_page: 5,
+    filter: { wallet_type: 'basic' },
   }),
 };
 

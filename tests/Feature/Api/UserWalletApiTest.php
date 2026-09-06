@@ -9,11 +9,6 @@ it('requires authentication for user wallet endpoints', function () {
 
     $response = $this->getJson('/api/user/wallets');
     $response->assertUnauthorized();
-
-    $deductResponse = $this->postJson('/api/user/wallets/deduct', [
-        'amount' => 5,
-    ]);
-    $deductResponse->assertUnauthorized();
 });
 
 it('lists authenticated users wallets', function () {
@@ -122,7 +117,7 @@ it('does not allow user to access another users transactions', function () {
     expect($response->json('data'))->toHaveCount(0);
 });
 
-it('allows authenticated user to deduct credits', function () {
+it('does not allow user to deduct credits or mutate wallet balances via user API', function () {
     $user = User::factory()->create();
     $wallet = $user->getWallet('basic');
     $wallet->update(['balance' => 45.0]);
@@ -136,33 +131,10 @@ it('allows authenticated user to deduct credits', function () {
         'reference_id' => 'act_555',
     ]);
 
-    $response->assertSuccessful()
-        ->assertJsonPath('success', true);
-
-    expect((float) $response->json('data.wallet.balance'))->toBe(30.0);
+    $response->assertMethodNotAllowed();
 
     $wallet->refresh();
-    expect((float) $wallet->balance)->toBe(30.0);
-});
-
-it('returns 422 when user has insufficient credits for deduction', function () {
-    $user = User::factory()->create();
-    $wallet = $user->getWallet('premium');
-    $wallet->update(['balance' => 2.0]);
-
-    Sanctum::actingAs($user);
-
-    $response = $this->postJson('/api/user/wallets/deduct', [
-        'wallet_type' => 'premium',
-        'amount' => 10.0,
-    ]);
-
-    $response->assertStatus(422)
-        ->assertJsonPath('success', false)
-        ->assertJsonPath('error', 'insufficient_credits')
-        ->assertJsonPath('data.wallet_type', 'premium')
-        ->assertJsonPath('data.current_balance', 2)
-        ->assertJsonPath('data.required_amount', 10);
+    expect((float) $wallet->balance)->toBe(45.0);
 });
 
 it('gets all wallet transactions across all wallets for authenticated user', function () {

@@ -118,7 +118,6 @@ Route::prefix('user')->middleware(['auth:sanctum', 'throttle:120,1'])->group(fun
         Route::get('/usages', 'usages')->name('api.user.wallets.usages');
         Route::get('/{type}', 'show')->name('api.user.wallets.show');
         Route::get('/{type}/transactions', 'transactions')->name('api.user.wallets.transactions');
-        Route::post('/deduct', 'deduct')->name('api.user.wallets.deduct');
     });
 
 }); // closes the 'user' group

@@ -38,13 +38,13 @@ it('includes wallets modal and mock endpoints in demo assets', function () {
     expect($html)->toContain('id="btn-wallets"')
         ->and($html)->toContain('WalletsModal')
         ->and($html)->toContain('data-snippet="list-wallets"')
-        ->and($html)->toContain('data-snippet="deduct-credits"');
+        ->and($html)->toContain('data-snippet="wallet-usages"');
 
     $demoJs = file_get_contents(public_path('demo/demo.js'));
     expect($demoJs)->toContain('WalletsModal')
         ->and($demoJs)->toContain('btn-wallets')
         ->and($demoJs)->toContain('list-wallets')
-        ->and($demoJs)->toContain('deduct-credits');
+        ->and($demoJs)->toContain('wallet-usages');
 
     $mockApi = file_get_contents(public_path('demo/mock-api.js'));
     expect($mockApi)->toContain('/api/user/wallets')

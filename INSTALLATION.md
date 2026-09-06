@@ -44,6 +44,29 @@ PayCan is a powerful payment processing platform built with Laravel and Filament
 3. **Access Admin Panel**
    - Visit `/admin` to access the admin panel
 
+### Option 3: Local Development Setup
+
+1. **Install dependencies and set up environment:**
+   ```bash
+   composer install && npm install
+   cp .env.example .env
+   php artisan key:generate
+   php artisan migrate --seed
+   ```
+
+2. **Start development servers:**
+   ```bash
+   php artisan serve          # terminal 1
+   npm run dev                # terminal 2
+   ```
+
+3. **Development utilities:**
+   ```bash
+   npm run copy-sdk           # rebuild SDK and copy to public/sdk/
+   php artisan test           # run the Pest test suite
+   vendor/bin/pint --dirty    # format code style
+   ```
+
 ## 📋 System Requirements
 
 ### Server Requirements

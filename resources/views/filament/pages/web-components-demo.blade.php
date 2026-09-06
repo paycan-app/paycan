@@ -676,7 +676,7 @@ await paycan.transactions.get(id);</code></pre>
             <div class="demo-section">
                 <div>
                     <h3 class="text-base font-semibold mb-2">Wallets & Credits API</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Query wallets, deduct credits for AI usage, and view transaction/metered logs.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Query wallets, inspect live balances, and view transaction/metered usage logs (read-only for clients).</p>
                 </div>
                 <div class="demo-code">
                     <button type="button" class="copy-button" data-copy-target="api-wallets">Copy</button>
@@ -687,14 +687,8 @@ const { data: wallets } = await paycan.wallets.list();
 const { data: transactions } = await paycan.wallets.listAllTransactions({ page: 1, limit: 10 });
 const { data: usages } = await paycan.wallets.listUsages({ page: 1, limit: 10 });
 
-// Deduct credits for AI usage (metered billing)
-await paycan.wallets.deduct({
-  amount: 2.5,
-  type: 'basic',
-  description: 'AI Chat Completion (1,250 tokens)',
-  reference_id: 'req_ai_98234a',
-  meta: { model: 'gpt-4o-mini', tokens: 1250 }
-});</code></pre>
+// Note: Credit deductions & top-ups are securely performed
+// server-side using your Admin API key (POST /api/admin/wallets/deduct)</code></pre>
                 </div>
             </div>
         </div>

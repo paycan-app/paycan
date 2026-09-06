@@ -318,20 +318,29 @@ if (!basicWallet || parseFloat(basicWallet.balance) < 2.0) {
   throw new Error('Insufficient credits');
 }
 
-// 3. Deduct credits after inference (records atomic usage log with metadata)
-await paycan.wallets.deduct({
-  amount: 2.5,
-  type: 'basic', // or 'premium'
-  description: 'AI Code Review - 2,500 tokens',
-  reference_id: 'task_exec_98124',
-  meta: {
-    model: 'gpt-4o',
-    prompt_tokens: 1800,
-    completion_tokens: 700,
-  }
-});
+// 3. Deduct credits on your backend after task completion
+// SECURITY NOTE: Frontend client tokens are strictly read-only for wallet operations
+// to prevent tampering. Deductions must always be called from your backend server
+// using your secret API key (POST /api/admin/wallets/deduct):
+//
+// Backend example (Node.js):
+// await fetch('https://pay.yourapp.com/api/admin/wallets/deduct', {
+//   method: 'POST',
+//   headers: {
+//     'Content-Type': 'application/json',
+//     'X-API-Key': process.env.PAYCAN_API_SECRET,
+//   },
+//   body: JSON.stringify({
+//     user_id: user.id,
+//     wallet_type: 'basic',
+//     amount: 2.5,
+//     description: 'AI Code Review - 2,500 tokens',
+//     reference_id: 'task_exec_98124',
+//     meta: { model: 'gpt-4o', prompt_tokens: 1800, completion_tokens: 700 }
+//   })
+// });
 
-// 4. Query usage logs or transaction history programmatically
+// 4. Query usage logs or transaction history programmatically in frontend
 const { data: usages } = await paycan.wallets.listUsages({ page: 1, limit: 20 });
 const { data: transactions } = await paycan.wallets.listAllTransactions({ page: 1, limit: 20 });
 ```

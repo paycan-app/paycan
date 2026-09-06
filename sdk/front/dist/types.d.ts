@@ -234,23 +234,6 @@ export interface WalletTransaction {
     created_at: string;
     updated_at: string;
 }
-export interface DeductCreditsParams {
-    user_id?: string;
-    wallet_type?: string;
-    amount: number;
-    reference_id?: string;
-    description?: string;
-    meta?: Record<string, any>;
-}
-export interface TopupCreditsParams {
-    user_id: string;
-    amount: number;
-    wallet_type?: string;
-    action?: string;
-    description?: string;
-    reference_id?: string;
-    meta?: Record<string, any>;
-}
 export interface WalletTransactionsParams {
     wallet_type?: string;
     action?: string;

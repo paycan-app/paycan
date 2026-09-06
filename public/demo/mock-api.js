@@ -640,49 +640,7 @@
     }
 
     if (method === 'POST' && path === '/api/user/wallets/deduct') {
-      if (!isAuthenticated(init)) { return unauthenticated(); }
-      var deductType = body.type || 'basic';
-      var deductAmount = parseFloat(body.amount);
-      if (isNaN(deductAmount) || deductAmount <= 0) {
-        return json({ message: 'Invalid deduction amount.', errors: { amount: ['Amount must be greater than 0.'] } }, 422);
-      }
-      var wForDeduct = db.wallets.find(function (w) { return w.type === deductType; });
-      if (!wForDeduct) {
-        return json({ message: 'Wallet not found.' }, 404);
-      }
-      var currentBal = parseFloat(wForDeduct.balance);
-      if (currentBal < deductAmount) {
-        return json({
-          message: 'Insufficient credits in ' + deductType + ' wallet. Current balance: ' + currentBal + ', required: ' + deductAmount + '.',
-          error: 'insufficient_credits',
-          wallet_type: deductType,
-          current_balance: currentBal,
-          required_amount: deductAmount,
-        }, 422);
-      }
-      var newBal = (currentBal - deductAmount).toFixed(4);
-      wForDeduct.balance = newBal;
-      var newTx = {
-        id: 'wtx_' + uid(),
-        wallet_id: wForDeduct.id,
-        user_id: db.user.id,
-        type: 'debit',
-        action: 'usage',
-        amount: deductAmount.toFixed(4),
-        balance_after: newBal,
-        reference_id: body.reference_id || ('req_ai_' + uid()),
-        description: body.description || ('AI usage deduction of ' + deductAmount + ' credits'),
-        meta: body.meta || {},
-        created_at: new Date().toISOString(),
-        wallet: { id: wForDeduct.id, type: wForDeduct.type, currency: wForDeduct.currency },
-      };
-      db.wallet_transactions.unshift(newTx);
-      return json({
-        success: true,
-        message: 'Credits deducted successfully',
-        transaction: newTx,
-        wallet: { id: wForDeduct.id, type: wForDeduct.type, balance: newBal, currency: wForDeduct.currency },
-      });
+      return json({ message: 'User wallet operations are read-only. Deductions must be performed server-side via the Admin API.' }, 405);
     }
 
     return json({ message: 'Mock route not found: ' + method + ' ' + path }, 404);

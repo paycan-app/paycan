@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers\Api\User;
 
-use App\Exceptions\InsufficientCreditsException;
-use App\Http\Requests\Api\User\DeductCreditsUserRequest;
 use App\Models\WalletTransaction;
 use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
@@ -289,90 +287,5 @@ class WalletController extends UserApiController
             ->paginate($perPage);
 
         return response()->json($usages);
-    }
-
-    /**
-     * @OA\Post(
-     *     path="/api/user/wallets/deduct",
-     *     summary="Deduct credits for authenticated user",
-     *     description="Atomically deduct credits from the authenticated user's wallet",
-     *     operationId="userDeductCredits",
-     *     tags={"User Wallets"},
-     *     security={{"sanctum": {}}},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *
-     *         @OA\JsonContent(
-     *             required={"amount"},
-     *
-     *             @OA\Property(property="wallet_type", type="string", default="basic", example="basic"),
-     *             @OA\Property(property="amount", type="number", format="float", example=1.0),
-     *             @OA\Property(property="reference_id", type="string", example="action_123"),
-     *             @OA\Property(property="description", type="string", example="User prompt submission"),
-     *             @OA\Property(property="meta", type="object")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Credits deducted successfully",
-     *
-     *         @OA\JsonContent(ref="#/components/schemas/DeductCreditsResponse")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=422,
-     *         description="Insufficient credits or validation error",
-     *
-     *         @OA\JsonContent(ref="#/components/schemas/InsufficientCreditsErrorResponse")
-     *     ),
-     *
-     *     @OA\Response(response=401, description="Unauthenticated", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
-     * )
-     */
-    public function deduct(DeductCreditsUserRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-        $user = auth()->user();
-        $walletType = $validated['wallet_type'] ?? 'basic';
-        $amount = (float) $validated['amount'];
-        $referenceId = $validated['reference_id'] ?? null;
-        $description = $validated['description'] ?? null;
-        $meta = $validated['meta'] ?? [];
-
-        try {
-            $transaction = $this->walletService->deductCredits(
-                target: $user,
-                amount: $amount,
-                type: $walletType,
-                description: $description,
-                referenceId: $referenceId,
-                meta: $meta
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Credits deducted successfully',
-                'data' => [
-                    'transaction' => $transaction,
-                    'wallet' => [
-                        'type' => $walletType,
-                        'balance' => (float) $transaction->balance_after,
-                    ],
-                ],
-            ]);
-        } catch (InsufficientCreditsException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'insufficient_credits',
-                'message' => $e->getMessage(),
-                'data' => [
-                    'wallet_type' => $e->walletType,
-                    'current_balance' => (float) $e->currentBalance,
-                    'required_amount' => (float) $e->requiredAmount,
-                ],
-            ], 422);
-        }
     }
 }

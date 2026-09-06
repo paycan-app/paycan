@@ -45,8 +45,6 @@ export type {
   GetCheckoutPreviewParams,
   Wallet,
   WalletTransaction,
-  DeductCreditsParams,
-  TopupCreditsParams,
   WalletTransactionsParams,
   WalletUsagesParams,
 } from './types';

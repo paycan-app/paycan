@@ -8,8 +8,6 @@ import type { HttpClient } from '../http-client';
 import type {
   Wallet,
   WalletTransaction,
-  DeductCreditsParams,
-  TopupCreditsParams,
   WalletTransactionsParams,
   WalletUsagesParams,
   PaginatedResponse,
@@ -146,64 +144,6 @@ export class Wallets {
       `/api/admin/users/${userId}/wallets/usages`,
       params
     );
-  }
-
-  /**
-   * Top up credits for a user's wallet (Admin / Backend)
-   *
-   * @param params - Top up parameters
-   *
-   * @example
-   * await paycan.wallets.topup({
-   *   user_id: 'usr_123',
-   *   wallet_type: 'basic',
-   *   amount: 500,
-   *   description: 'Promotional gift'
-   * });
-   */
-  async topup(params: TopupCreditsParams): Promise<{
-    success: boolean;
-    message: string;
-    data: {
-      transaction: WalletTransaction;
-      wallet: {
-        type: string;
-        balance: number;
-      };
-    };
-  }> {
-    return this.http.post('/api/admin/wallets/topup', params);
-  }
-
-  /**
-   * Deduct credits from user's wallet (e.g. for AI agent usage)
-   *
-   * If `params.user_id` is provided, calls the admin endpoint.
-   * Otherwise, calls the authenticated user endpoint.
-   *
-   * @param params - Deduction parameters
-   *
-   * @example
-   * const result = await paycan.wallets.deduct({
-   *   wallet_type: 'premium',
-   *   amount: 2.5,
-   *   description: 'Agent generation task #12',
-   *   reference_id: 'task_12'
-   * });
-   */
-  async deduct(params: DeductCreditsParams): Promise<{
-    success: boolean;
-    message: string;
-    data: {
-      transaction: WalletTransaction;
-      wallet: {
-        type: string;
-        balance: number;
-      };
-    };
-  }> {
-    const endpoint = params.user_id ? '/api/admin/wallets/deduct' : '/api/user/wallets/deduct';
-    return this.http.post(endpoint, params);
   }
 }
 
