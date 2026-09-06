@@ -51,6 +51,10 @@ class FulfillmentService
                     'fulfilled_at' => now(),
                 ]);
 
+                if ($productType !== 'subscription' && $order->productPrice?->hasCreditAllocations()) {
+                    app(\App\Services\Wallet\WalletService::class)->applyOrderAllocation($order);
+                }
+
                 // Notify customer with product-type-specific notification
                 // Subscriptions don't get fulfillment notifications - they get subscription notifications separately
                 if ($productType !== 'subscription') {

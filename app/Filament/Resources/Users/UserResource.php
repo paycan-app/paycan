@@ -49,6 +49,8 @@ class UserResource extends Resource
     public static function getRelations(): array
     {
         return [
+            \App\Filament\Resources\Users\RelationManagers\WalletsRelationManager::class,
+            \App\Filament\Resources\Users\RelationManagers\WalletTransactionsRelationManager::class,
             OrdersRelationManager::class,
             SubscriptionsRelationManager::class,
             TransactionsRelationManager::class,

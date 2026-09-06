@@ -266,12 +266,23 @@ class HttpClient {
     async get(endpoint, params, skipAuthCheck = false) {
         let url = endpoint;
         if (params) {
-            const queryString = new URLSearchParams(Object.entries(params).reduce((acc, [key, value]) => {
-                if (value !== undefined && value !== null) {
-                    acc[key] = String(value);
+            const searchParams = new URLSearchParams();
+            const appendParam = (key, val) => {
+                if (val === undefined || val === null)
+                    return;
+                if (typeof val === 'object' && !Array.isArray(val)) {
+                    Object.entries(val).forEach(([subKey, subVal]) => {
+                        appendParam(`${key}[${subKey}]`, subVal);
+                    });
                 }
-                return acc;
-            }, {})).toString();
+                else {
+                    searchParams.append(key, String(val));
+                }
+            };
+            Object.entries(params).forEach(([key, val]) => {
+                appendParam(key, val);
+            });
+            const queryString = searchParams.toString();
             if (queryString) {
                 url = `${endpoint}?${queryString}`;
             }
@@ -351,6 +362,152 @@ class CheckoutLite {
         }
         // Public endpoint; skip auth check
         return this.http.get(`/api/user/checkout/preview?${queryParams.toString()}`, undefined, true);
+    }
+}
+
+/**
+ * Wallets Resource
+ *
+ * Handle wallet and credit-related operations
+ */
+class Wallets {
+    constructor(http) {
+        this.http = http;
+    }
+    /**
+     * List all wallets for the authenticated user
+     *
+     * @example
+     * const { data: wallets } = await paycan.wallets.list();
+     * console.log(wallets); // [{ type: 'basic', balance: 1000 }, { type: 'premium', balance: 50 }]
+     */
+    async list() {
+        return this.http.get('/api/user/wallets');
+    }
+    /**
+     * Get a specific wallet by type
+     *
+     * @param type - Wallet type ('basic', 'premium', or custom)
+     *
+     * @example
+     * const { data: basicWallet } = await paycan.wallets.get('basic');
+     */
+    async get(type = 'basic') {
+        return this.http.get(`/api/user/wallets/${type}`);
+    }
+    /**
+     * Get wallet transactions for the authenticated user
+     *
+     * Can be called with:
+     * - No arguments: returns all transactions across all wallets
+     * - A wallet type string (e.g. 'basic', 'premium')
+     * - An options object with pagination and filtering params
+     *
+     * @example
+     * // All transactions
+     * const allTxs = await paycan.wallets.transactions();
+     *
+     * // Transactions for basic wallet
+     * const basicTxs = await paycan.wallets.transactions('basic', { per_page: 20 });
+     *
+     * // With filter object
+     * const creditTxs = await paycan.wallets.transactions({
+     *   filter: { action: 'subscription_grant' },
+     *   per_page: 10
+     * });
+     */
+    async transactions(typeOrParams, maybeParams) {
+        if (typeof typeOrParams === 'string') {
+            return this.http.get(`/api/user/wallets/${typeOrParams}/transactions`, maybeParams);
+        }
+        const params = typeOrParams || {};
+        return this.http.get('/api/user/wallets/transactions', params);
+    }
+    /**
+     * Get credit usage logs for the authenticated user
+     *
+     * @param params - Query parameters for pagination and filtering
+     *
+     * @example
+     * const usages = await paycan.wallets.usages({
+     *   filter: { wallet_type: 'premium' },
+     *   per_page: 15
+     * });
+     */
+    async usages(params) {
+        return this.http.get('/api/user/wallets/usages', params);
+    }
+    /**
+     * Get credit usage logs (alias for usages)
+     */
+    async listUsages(params) {
+        return this.usages(params);
+    }
+    /**
+     * List all wallet transactions across all wallets (alias for transactions())
+     */
+    async listAllTransactions(params) {
+        return this.transactions(params);
+    }
+    /**
+     * List transactions for a specific wallet type
+     */
+    async listTransactions(type, params) {
+        return this.transactions(type, params);
+    }
+    /**
+     * Get all wallet transactions for a specific customer (Admin / Backend)
+     *
+     * @param userId - Target user / customer ID
+     * @param params - Optional query parameters
+     */
+    async getUserTransactions(userId, params) {
+        return this.http.get(`/api/admin/users/${userId}/wallets/transactions`, params);
+    }
+    /**
+     * Get usage logs for a specific customer (Admin / Backend)
+     *
+     * @param userId - Target user / customer ID
+     * @param params - Optional query parameters
+     */
+    async getUserUsages(userId, params) {
+        return this.http.get(`/api/admin/users/${userId}/wallets/usages`, params);
+    }
+    /**
+     * Top up credits for a user's wallet (Admin / Backend)
+     *
+     * @param params - Top up parameters
+     *
+     * @example
+     * await paycan.wallets.topup({
+     *   user_id: 'usr_123',
+     *   wallet_type: 'basic',
+     *   amount: 500,
+     *   description: 'Promotional gift'
+     * });
+     */
+    async topup(params) {
+        return this.http.post('/api/admin/wallets/topup', params);
+    }
+    /**
+     * Deduct credits from user's wallet (e.g. for AI agent usage)
+     *
+     * If `params.user_id` is provided, calls the admin endpoint.
+     * Otherwise, calls the authenticated user endpoint.
+     *
+     * @param params - Deduction parameters
+     *
+     * @example
+     * const result = await paycan.wallets.deduct({
+     *   wallet_type: 'premium',
+     *   amount: 2.5,
+     *   description: 'Agent generation task #12',
+     *   reference_id: 'task_12'
+     * });
+     */
+    async deduct(params) {
+        const endpoint = params.user_id ? '/api/admin/wallets/deduct' : '/api/user/wallets/deduct';
+        return this.http.post(endpoint, params);
     }
 }
 
@@ -2158,6 +2315,7 @@ class PayCanApi {
         this.validateConfig(config);
         this.http = new HttpClient(config);
         this.checkout = new CheckoutLite(this.http);
+        this.wallets = new Wallets(this.http);
     }
     async me() {
         return this.http.get('/api/user/me');

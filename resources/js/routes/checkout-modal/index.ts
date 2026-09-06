@@ -1,6 +1,6 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 /**
-* @see routes/web.php:158
+* @see routes/web.php:162
 * @route '/checkout-modal-demo'
 */
 export const demo = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -14,7 +14,7 @@ demo.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:158
+* @see routes/web.php:162
 * @route '/checkout-modal-demo'
 */
 demo.url = (options?: RouteQueryOptions) => {
@@ -22,7 +22,7 @@ demo.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/web.php:158
+* @see routes/web.php:162
 * @route '/checkout-modal-demo'
 */
 demo.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -31,7 +31,7 @@ demo.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:158
+* @see routes/web.php:162
 * @route '/checkout-modal-demo'
 */
 demo.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -40,7 +40,7 @@ demo.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
-* @see routes/web.php:158
+* @see routes/web.php:162
 * @route '/checkout-modal-demo'
 */
 const demoForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -49,7 +49,7 @@ const demoForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:158
+* @see routes/web.php:162
 * @route '/checkout-modal-demo'
 */
 demoForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -58,7 +58,7 @@ demoForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:158
+* @see routes/web.php:162
 * @route '/checkout-modal-demo'
 */
 demoForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

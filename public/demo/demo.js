@@ -6,7 +6,7 @@
  * calls are answered by mock-api.js, so every button below exercises the
  * exact same code path a production integration would.
  */
-import { PayCan, SubscriptionsModal, OrdersModal, TransactionsModal } from './vendor/paycan-sdk.js';
+import { PayCan, SubscriptionsModal, OrdersModal, TransactionsModal, WalletsModal } from './vendor/paycan-sdk.js';
 
 const DEMO_TOKEN = 'pcn_demo_token_do_not_use_in_production';
 const SIGNED_IN_KEY = 'paycan_demo_signed_in';
@@ -138,6 +138,14 @@ document.getElementById('btn-transactions').addEventListener('click', () => {
   new TransactionsModal(paycan, modalOptions()).open();
 });
 
+document.getElementById('btn-wallets')?.addEventListener('click', () => {
+  if (!requireAuth()) return;
+  new WalletsModal(paycan, {
+    ...modalOptions(),
+    onTopupRequested: (wallet) => toast(`Top up requested for ${wallet.type} wallet`, 'info'),
+  }).open();
+});
+
 /* ------------------------------------------------------------------ *
  * API playground
  * ------------------------------------------------------------------ */
@@ -152,6 +160,21 @@ const snippets = {
     product_price_id: 'price_ebook',
     gateway: 'stripe',
     billing_email: 'guest@example.com',
+  }),
+  'list-wallets': async () => {
+    const wallets = await paycan.wallets.list();
+    const usages = await paycan.wallets.usages({ page: 1, per_page: 5 });
+    return {
+      wallets: wallets.data,
+      usages: usages.data,
+    };
+  },
+  'deduct-credits': () => paycan.wallets.deduct({
+    amount: 2.5,
+    type: 'basic',
+    description: 'AI Chat Completion (1,250 tokens)',
+    reference_id: 'req_ai_98234a',
+    meta: { model: 'gpt-4o-mini', tokens: 1250 },
   }),
 };
 

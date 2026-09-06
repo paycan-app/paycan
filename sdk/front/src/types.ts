@@ -239,3 +239,78 @@ export interface GetCheckoutPreviewParams {
   billing_country?: string;
   billing_state?: string;
 }
+
+export interface Wallet {
+  id: string;
+  user_id: string;
+  type: string;
+  balance: number;
+  currency: string;
+  is_active: boolean;
+  meta?: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  wallet_id: string;
+  user_id: string;
+  type: 'credit' | 'debit';
+  action: string;
+  amount: number;
+  balance_after: number;
+  reference_id?: string | null;
+  description?: string | null;
+  meta?: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeductCreditsParams {
+  user_id?: string;
+  wallet_type?: string;
+  amount: number;
+  reference_id?: string;
+  description?: string;
+  meta?: Record<string, any>;
+}
+
+export interface TopupCreditsParams {
+  user_id: string;
+  amount: number;
+  wallet_type?: string;
+  action?: string;
+  description?: string;
+  reference_id?: string;
+  meta?: Record<string, any>;
+}
+
+export interface WalletTransactionsParams {
+  wallet_type?: string;
+  action?: string;
+  type?: 'credit' | 'debit';
+  reference_id?: string;
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  filter?: {
+    wallet_type?: string;
+    action?: string;
+    type?: 'credit' | 'debit';
+    reference_id?: string;
+  };
+}
+
+export interface WalletUsagesParams {
+  wallet_type?: string;
+  reference_id?: string;
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  filter?: {
+    wallet_type?: string;
+    reference_id?: string;
+  };
+}
+

@@ -1,9 +1,11 @@
 import { CheckoutLite } from './resources/checkout-lite';
+import { Wallets } from './resources/wallets';
 import { CheckoutModal, type CheckoutModalOptions } from './components/checkout-modal';
 import type { PayCanConfig, AuthResponse, AuthenticationConfig, User } from './types';
 export declare class PayCanApi {
     private http;
     checkout: CheckoutLite;
+    wallets: Wallets;
     constructor(config: PayCanConfig);
     me(): Promise<{
         user: User;

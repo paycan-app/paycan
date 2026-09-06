@@ -145,6 +145,7 @@ Instead of building your own UI, you can use the SDK's built-in modal components
 | `SubscriptionsModal` | List, cancel, and resume subscriptions | Yes |
 | `OrdersModal` | Order history with downloads and licenses | Yes |
 | `TransactionsModal` | Payment history | Yes |
+| `WalletsModal` | Credit balances, transactions, and AI token usage logs | Yes |
 
 ### Checkout and products modals
 
@@ -179,7 +180,7 @@ If no user token is set, the checkout modal automatically shows an email field a
 Instantiate these directly with your `PayCan` client (a user token must be set):
 
 ```javascript
-import { PayCan, SubscriptionsModal, OrdersModal, TransactionsModal } from '@paycan/sdk';
+import { PayCan, SubscriptionsModal, OrdersModal, TransactionsModal, WalletsModal } from '@paycan/sdk';
 
 new SubscriptionsModal(paycan, {
   theme: 'auto',
@@ -189,9 +190,18 @@ new SubscriptionsModal(paycan, {
 
 new OrdersModal(paycan, { theme: 'light' }).open();
 new TransactionsModal(paycan, { theme: 'dark' }).open();
+
+// Wallets & AI Credits modal:
+new WalletsModal(paycan, {
+  theme: 'auto',
+  onTopupRequested: (wallet) => console.log('Top up requested for:', wallet),
+}).open();
+
+// Or via helper:
+paycan.openWalletsModal({ theme: 'dark' });
 ```
 
-See the [Checkout Modal guide](../../CHECKOUT_MODAL_README.md) for full details, and try the live demos at `/checkout-modal-demo` and `/account-modals-demo` on your PayCan instance.
+See the [Checkout Modal guide](../../CHECKOUT_MODAL_README.md) for full details, and try the live demos at `/checkout-modal-demo`, `/account-modals-demo`, and `/admin/web-components-demo` on your PayCan instance.
 
 ## Common Use Cases
 
@@ -284,6 +294,46 @@ async function showSubscriptionManager() {
 await paycan.subscriptions.cancel(subscriptionId);
 await paycan.subscriptions.resume(subscriptionId);
 await paycan.subscriptions.change(subscriptionId, { product_price_id: 'price-456' });
+```
+
+### Use Case 4: AI Credits & Metered Usage (Tokens / Agents)
+
+```javascript
+// 1. Fetch user's wallets & current credit balances (basic & premium)
+const { data: wallets } = await paycan.wallets.list();
+const basicWallet = wallets.find(w => w.type === 'basic');
+const premiumWallet = wallets.find(w => w.type === 'premium');
+
+console.log(`Balances: Basic: ${basicWallet?.balance}, Premium: ${premiumWallet?.balance}`);
+
+// 2. Check if user has enough credits before performing AI agent inference
+if (!basicWallet || parseFloat(basicWallet.balance) < 2.0) {
+  // Open the Wallets Modal so user can view balance and top up
+  paycan.openWalletsModal({
+    onTopupRequested: (wallet) => {
+      // Redirect to topup checkout or upgrade plan
+      paycan.openProductsModal({ type: 'subscription' });
+    }
+  });
+  throw new Error('Insufficient credits');
+}
+
+// 3. Deduct credits after inference (records atomic usage log with metadata)
+await paycan.wallets.deduct({
+  amount: 2.5,
+  type: 'basic', // or 'premium'
+  description: 'AI Code Review - 2,500 tokens',
+  reference_id: 'task_exec_98124',
+  meta: {
+    model: 'gpt-4o',
+    prompt_tokens: 1800,
+    completion_tokens: 700,
+  }
+});
+
+// 4. Query usage logs or transaction history programmatically
+const { data: usages } = await paycan.wallets.listUsages({ page: 1, limit: 20 });
+const { data: transactions } = await paycan.wallets.listAllTransactions({ page: 1, limit: 20 });
 ```
 
 ### Advanced Filtering

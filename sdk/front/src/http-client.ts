@@ -304,14 +304,23 @@ export class HttpClient {
   async get<T>(endpoint: string, params?: Record<string, any>, skipAuthCheck = false): Promise<T> {
     let url = endpoint;
     if (params) {
-      const queryString = new URLSearchParams(
-        Object.entries(params).reduce((acc, [key, value]) => {
-          if (value !== undefined && value !== null) {
-            acc[key] = String(value);
-          }
-          return acc;
-        }, {} as Record<string, string>)
-      ).toString();
+      const searchParams = new URLSearchParams();
+      const appendParam = (key: string, val: any) => {
+        if (val === undefined || val === null) return;
+        if (typeof val === 'object' && !Array.isArray(val)) {
+          Object.entries(val).forEach(([subKey, subVal]) => {
+            appendParam(`${key}[${subKey}]`, subVal);
+          });
+        } else {
+          searchParams.append(key, String(val));
+        }
+      };
+
+      Object.entries(params).forEach(([key, val]) => {
+        appendParam(key, val);
+      });
+
+      const queryString = searchParams.toString();
       if (queryString) {
         url = `${endpoint}?${queryString}`;
       }

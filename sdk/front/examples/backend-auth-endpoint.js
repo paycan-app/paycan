@@ -225,3 +225,74 @@ async function getUserFromDatabase(userId) {
     email: 'john@example.com',
   };
 }
+
+// ============================================================================
+// Backend Credit Operations (AI Agents / Background Workers)
+// ============================================================================
+
+/**
+ * Deduct credits from a user's wallet after executing an AI Agent task.
+ * Calls PayCan's Admin API with the secret API key.
+ *
+ * @param {string} userId - Your application's user ID (or PayCan user ID)
+ * @param {number} amount - Credits to deduct (e.g., 2.5)
+ * @param {string} type - Wallet type ('basic' or 'premium')
+ * @param {object} taskDetails - Run ID, prompt/completion tokens, model name
+ */
+async function deductUserCredits(userId, amount, type = 'basic', taskDetails = {}) {
+  const response = await fetch(`${process.env.PAYCAN_URL}/api/admin/wallets/deduct`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': process.env.PAYCAN_API_SECRET, // Protected secret key
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      type: type,
+      amount: amount,
+      description: taskDetails.description || `AI agent inference (${taskDetails.model || 'llm'})`,
+      reference_id: taskDetails.runId || null,
+      meta: {
+        model: taskDetails.model,
+        prompt_tokens: taskDetails.promptTokens,
+        completion_tokens: taskDetails.completionTokens,
+      },
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    if (data.error === 'insufficient_credits') {
+      throw new Error(`Insufficient credits: User has ${data.current_balance}, required ${data.required_amount}`);
+    }
+    throw new Error(data.message || 'Failed to deduct credits');
+  }
+
+  return data; // { success: true, message: '...', transaction: ..., balance: ... }
+}
+
+/**
+ * Add or top up credits for a user (promotions, manual rewards, enterprise grants).
+ */
+async function topupUserCredits(userId, amount, type = 'basic', reason = 'Admin grant') {
+  const response = await fetch(`${process.env.PAYCAN_URL}/api/admin/wallets/topup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': process.env.PAYCAN_API_SECRET,
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      type: type,
+      amount: amount,
+      description: reason,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Top-up failed: ${response.statusText}`);
+  }
+
+  return await response.json();
+}

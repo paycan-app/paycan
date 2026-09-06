@@ -68,6 +68,8 @@ class SharedSchemas
      *     @OA\Property(property="currency", type="string", example="USD", description="Currency code"),
      *     @OA\Property(property="billing_period", type="string", enum={"once", "daily", "weekly", "monthly", "yearly"}, example="monthly", description="Billing period"),
      *     @OA\Property(property="billing_interval", type="integer", example=1, description="Billing interval (e.g., every 1 month)"),
+     *     @OA\Property(property="credit_allocations", type="object", nullable=true, example={"basic": 5000, "premium": 100}, description="Allocated credits per wallet type"),
+     *     @OA\Property(property="credit_renewal_policy", type="string", enum={"accumulate", "reset"}, example="accumulate", description="Whether unused credits rollover or reset on recurring billing"),
      *     @OA\Property(property="is_active", type="boolean", example=true, description="Whether the price is active"),
      *     @OA\Property(property="created_at", type="string", format="date-time", description="Creation timestamp"),
      *     @OA\Property(property="updated_at", type="string", format="date-time", description="Last update timestamp")
@@ -279,4 +281,95 @@ class SharedSchemas
      * )
      */
     public function validationErrorResponseSchema() {}
+
+    /**
+     * @OA\Schema(
+     *     schema="Wallet",
+     *     type="object",
+     *     title="Wallet",
+     *     description="User credit wallet model",
+     *     required={"id", "user_id", "type", "balance", "currency", "is_active"},
+     *
+     *     @OA\Property(property="id", type="string", example="01JM7A9B8C7D6E5F4G3H2J1K0L", description="Wallet ID (ULID)"),
+     *     @OA\Property(property="user_id", type="string", example="01HKXZ7K5QGXP0B1J2R3T4V5W6", description="User ID"),
+     *     @OA\Property(property="type", type="string", enum={"basic", "premium"}, example="basic", description="Wallet type (e.g. basic, premium, or custom)"),
+     *     @OA\Property(property="balance", type="number", format="float", example=1250.0000, description="Current credit balance"),
+     *     @OA\Property(property="currency", type="string", example="credits", description="Unit of account"),
+     *     @OA\Property(property="is_active", type="boolean", example=true, description="Whether wallet is active"),
+     *     @OA\Property(property="meta", type="object", nullable=true, description="Additional wallet metadata"),
+     *     @OA\Property(property="created_at", type="string", format="date-time", description="Creation timestamp"),
+     *     @OA\Property(property="updated_at", type="string", format="date-time", description="Last update timestamp")
+     * )
+     */
+    public function walletSchema() {}
+
+    /**
+     * @OA\Schema(
+     *     schema="WalletTransaction",
+     *     type="object",
+     *     title="WalletTransaction",
+     *     description="Credit ledger transaction & usage log entry",
+     *     required={"id", "wallet_id", "user_id", "type", "action", "amount", "balance_after"},
+     *
+     *     @OA\Property(property="id", type="string", example="01JM7B1C2D3E4F5G6H7J8K9L0M", description="Transaction ID (ULID)"),
+     *     @OA\Property(property="wallet_id", type="string", example="01JM7A9B8C7D6E5F4G3H2J1K0L", description="Associated wallet ID"),
+     *     @OA\Property(property="user_id", type="string", example="01HKXZ7K5QGXP0B1J2R3T4V5W6", description="Associated user ID"),
+     *     @OA\Property(property="type", type="string", enum={"credit", "debit"}, example="debit", description="Transaction direction: credit (added) or debit (deducted)"),
+     *     @OA\Property(property="action", type="string", enum={"usage", "subscription_grant", "subscription_renewal", "order_purchase", "manual_adjustment", "subscription_reset"}, example="usage", description="Business event that produced the transaction"),
+     *     @OA\Property(property="amount", type="number", format="float", example=2.5, description="Credit amount"),
+     *     @OA\Property(property="balance_after", type="number", format="float", example=1247.5, description="Wallet balance after transaction"),
+     *     @OA\Property(property="reference_id", type="string", nullable=true, example="task_run_891", description="External task, agent run, order, or subscription ID"),
+     *     @OA\Property(property="description", type="string", nullable=true, example="GPT-4o agent execution", description="Human-readable description"),
+     *     @OA\Property(property="meta", type="object", nullable=true, example={"model": "gpt-4o", "tokens": 1200}, description="Execution or usage metadata (model, tokens, etc.)"),
+     *     @OA\Property(property="created_at", type="string", format="date-time", description="Creation timestamp"),
+     *     @OA\Property(property="updated_at", type="string", format="date-time", description="Last update timestamp"),
+     *     @OA\Property(property="wallet", ref="#/components/schemas/Wallet", description="Associated wallet details")
+     * )
+     */
+    public function walletTransactionSchema() {}
+
+    /**
+     * @OA\Schema(
+     *     schema="DeductCreditsResponse",
+     *     type="object",
+     *     title="Deduct Credits Response",
+     *     description="Successful credit deduction result",
+     *
+     *     @OA\Property(property="success", type="boolean", example=true),
+     *     @OA\Property(property="message", type="string", example="Credits deducted successfully"),
+     *     @OA\Property(
+     *         property="data",
+     *         type="object",
+     *         @OA\Property(property="transaction", ref="#/components/schemas/WalletTransaction"),
+     *         @OA\Property(
+     *             property="wallet",
+     *             type="object",
+     *             @OA\Property(property="type", type="string", example="premium"),
+     *             @OA\Property(property="balance", type="number", format="float", example=47.5)
+     *         )
+     *     )
+     * )
+     */
+    public function deductCreditsResponseSchema() {}
+
+    /**
+     * @OA\Schema(
+     *     schema="InsufficientCreditsErrorResponse",
+     *     type="object",
+     *     title="Insufficient Credits Error Response",
+     *     description="Returned when user wallet balance is too low for the requested deduction",
+     *
+     *     @OA\Property(property="success", type="boolean", example=false),
+     *     @OA\Property(property="error", type="string", example="insufficient_credits"),
+     *     @OA\Property(property="message", type="string", example="Insufficient credits in premium wallet. Current balance: 1.2, required: 2.5."),
+     *     @OA\Property(
+     *         property="data",
+     *         type="object",
+     *         @OA\Property(property="wallet_type", type="string", example="premium"),
+     *         @OA\Property(property="current_balance", type="number", format="float", example=1.2),
+     *         @OA\Property(property="required_amount", type="number", format="float", example=2.5)
+     *     )
+     * )
+     */
+    public function insufficientCreditsErrorResponseSchema() {}
 }

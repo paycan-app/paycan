@@ -66,4 +66,22 @@ class User extends Authenticatable
     {
         return $this->hasMany(SocialConnection::class);
     }
+
+    public function wallets(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Wallet::class);
+    }
+
+    public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function getWallet(string $type = 'basic'): Wallet
+    {
+        return $this->wallets()->firstOrCreate(
+            ['type' => $type],
+            ['balance' => 0.0000, 'currency' => 'credits', 'is_active' => true]
+        );
+    }
 }

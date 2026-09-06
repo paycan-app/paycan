@@ -80,6 +80,15 @@ class WebComponentsDemo extends Page
      */
     protected function seedDemoDataIfNeeded(): void
     {
+        $this->seedDemoOrdersIfNeeded();
+        $this->seedDemoWalletsIfNeeded();
+    }
+
+    /**
+     * Seed demo orders and subscriptions if needed
+     */
+    protected function seedDemoOrdersIfNeeded(): void
+    {
         // Check if user already has orders
         if ($this->demoUser->orders()->count() > 0) {
             return;
@@ -143,6 +152,70 @@ class WebComponentsDemo extends Page
             'status' => 'succeeded',
             'amount' => $subscriptionOrder->total,
         ]);
+    }
+
+    /**
+     * Seed demo wallets and credit transaction logs if needed
+     */
+    protected function seedDemoWalletsIfNeeded(): void
+    {
+        if ($this->demoUser->wallets()->count() > 0) {
+            return;
+        }
+
+        $walletService = app(\App\Services\Wallet\WalletService::class);
+
+        // 1. Initial subscription grant on basic wallet: 500 credits
+        $walletService->addCredits(
+            $this->demoUser,
+            500.0,
+            'basic',
+            'subscription_grant',
+            'Monthly subscription plan credits',
+            'sub_demo_initial',
+            ['plan' => 'Pro Monthly', 'tier' => 'standard']
+        );
+
+        // 2. Initial grant on premium wallet: 50 credits
+        $walletService->addCredits(
+            $this->demoUser,
+            50.0,
+            'premium',
+            'subscription_grant',
+            'Monthly premium AI fast-lane credits',
+            'sub_demo_prem_initial',
+            ['plan' => 'Pro Monthly', 'tier' => 'premium']
+        );
+
+        // 3. Deduct basic credits for AI usage demo
+        $walletService->deductCredits(
+            $this->demoUser,
+            2.5,
+            'basic',
+            'AI Chat Completion - 1,250 tokens',
+            'req_ai_98234a',
+            ['model' => 'gpt-4o-mini', 'prompt_tokens' => 850, 'completion_tokens' => 400]
+        );
+
+        // 4. Deduct second basic usage
+        $walletService->deductCredits(
+            $this->demoUser,
+            5.0,
+            'basic',
+            'AI Document Analysis - 2,500 tokens',
+            'req_ai_10928b',
+            ['model' => 'gpt-4o-mini', 'prompt_tokens' => 1900, 'completion_tokens' => 600]
+        );
+
+        // 5. Deduct premium credit for complex reasoning agent
+        $walletService->deductCredits(
+            $this->demoUser,
+            4.0,
+            'premium',
+            'Deep Reasoning Agent - Complex Workflow',
+            'req_ai_prem_882',
+            ['model' => 'o3-mini', 'reasoning_tokens' => 3200]
+        );
     }
 
     /**

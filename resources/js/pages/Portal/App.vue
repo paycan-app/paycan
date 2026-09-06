@@ -5,9 +5,10 @@ import { PayCan } from '@paycan/sdk';
 import ProductsView from '@/components/Portal/ProductsView.vue';
 import OrdersView from '@/components/Portal/OrdersView.vue';
 import SubscriptionsView from '@/components/Portal/SubscriptionsView.vue';
+import WalletsView from '@/components/Portal/WalletsView.vue';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
-import { ShoppingBag, FileText, RefreshCw } from 'lucide-vue-next';
+import { ShoppingBag, FileText, RefreshCw, Coins } from 'lucide-vue-next';
 
 const props = defineProps<{
     userToken: string;
@@ -71,6 +72,15 @@ apiClient.setUserToken(props.userToken);
                     <RefreshCw class="mr-2 h-5 w-5" />
                     Subscriptions
                 </Button>
+                <Button
+                    @click="activeTab = 'credits'"
+                    :variant="activeTab === 'credits' ? 'default' : 'outline'"
+                    size="lg"
+                    class="text-lg"
+                >
+                    <Coins class="mr-2 h-5 w-5" />
+                    Credits
+                </Button>
             </div>
 
             <!-- Content -->
@@ -78,6 +88,11 @@ apiClient.setUserToken(props.userToken);
                 <ProductsView v-if="activeTab === 'products'" :api-client="apiClient" />
                 <OrdersView v-if="activeTab === 'orders'" :api-client="apiClient" />
                 <SubscriptionsView v-if="activeTab === 'subscriptions'" :api-client="apiClient" />
+                <WalletsView
+                    v-if="activeTab === 'credits'"
+                    :api-client="apiClient"
+                    @switch-tab="(tab) => activeTab = tab"
+                />
             </div>
         </div>
     </div>

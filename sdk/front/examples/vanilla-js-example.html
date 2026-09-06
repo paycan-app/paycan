@@ -94,9 +94,17 @@
     <button onclick="createCheckout()" id="checkout-btn" disabled>Buy Premium Plan</button>
   </div>
 
+  <div class="section">
+    <h2>Wallets &amp; AI Credits</h2>
+    <button onclick="loadWallets()" id="load-wallets-btn" disabled>Load Wallets &amp; Balance</button>
+    <button onclick="deductCredits()" id="deduct-credits-btn" disabled>Deduct 2.5 Credits (AI Query)</button>
+    <button onclick="openWalletsModal()" id="wallets-modal-btn" disabled>Open Wallets Modal</button>
+    <div id="wallets-container"></div>
+  </div>
+
   <script type="module">
     // The SDK is an ES module served directly by your PayCan instance
-    import { PayCan } from 'https://pay.yourapp.com/sdk/paycan-sdk.js';
+    import { PayCan, WalletsModal } from 'https://pay.yourapp.com/sdk/paycan-sdk.js';
 
     // Initialize PayCan SDK
     const paycan = new PayCan({
@@ -136,6 +144,9 @@
       document.getElementById('load-subs-btn').disabled = false;
       document.getElementById('check-access-btn').disabled = false;
       document.getElementById('checkout-btn').disabled = false;
+      document.getElementById('load-wallets-btn').disabled = false;
+      document.getElementById('deduct-credits-btn').disabled = false;
+      document.getElementById('wallets-modal-btn').disabled = false;
     }
 
     // ==========================================
@@ -334,6 +345,58 @@
       }
     });
 
+    // ==========================================
+    // Wallets & Credits
+    // ==========================================
+
+    async function loadWallets() {
+      const container = document.getElementById('wallets-container');
+      container.innerHTML = '<div class="loading">Loading wallets...</div>';
+
+      try {
+        const { data: wallets } = await paycan.wallets.list();
+
+        let html = '<div style="display: flex; gap: 10px; margin-top: 10px;">';
+        wallets.forEach(wallet => {
+          html += `
+            <div class="order" style="flex: 1;">
+              <h3>${wallet.type.toUpperCase()} Wallet</h3>
+              <p>Balance: <strong>${parseFloat(wallet.balance).toFixed(2)}</strong> ${wallet.currency}</p>
+              <p>Status: <span class="status ${wallet.is_active ? 'status-active' : 'status-pending'}">${wallet.is_active ? 'Active' : 'Inactive'}</span></p>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+      } catch (error) {
+        container.innerHTML = `<div class="error">Failed to load wallets: ${error.message}</div>`;
+      }
+    }
+
+    async function deductCredits() {
+      try {
+        const result = await paycan.wallets.deduct({
+          amount: 2.5,
+          type: 'basic',
+          description: 'AI Chat Completion (1,250 tokens)',
+          reference_id: 'task_demo_' + Date.now(),
+          meta: { model: 'gpt-4o-mini', tokens: 1250 }
+        });
+        alert(`Deduction successful! Remaining balance: ${result.wallet?.balance} credits`);
+        loadWallets();
+      } catch (error) {
+        alert('Deduction failed: ' + error.message);
+      }
+    }
+
+    function openWalletsModal() {
+      new WalletsModal(paycan, {
+        theme: 'auto',
+        onTopupRequested: (wallet) => alert(`Top up requested for ${wallet.type} wallet`),
+      }).open();
+    }
+
     // Module scope is not global - expose the handlers used by the inline onclick attributes
     Object.assign(window, {
       authenticate,
@@ -346,6 +409,9 @@
       cancelSubscription,
       resumeSubscription,
       createCheckout,
+      loadWallets,
+      deductCredits,
+      openWalletsModal,
     });
   </script>
 </body>

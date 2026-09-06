@@ -36,6 +36,8 @@ class ProductPrice extends Model
         'trial_days',
         'gateway_data',
         'is_active',
+        'credit_allocations',
+        'credit_renewal_policy',
     ];
 
     protected $casts = [
@@ -43,6 +45,8 @@ class ProductPrice extends Model
         'trial_days' => 'integer',
         'gateway_data' => 'array',
         'is_active' => 'boolean',
+        'credit_allocations' => 'array',
+        'credit_renewal_policy' => 'string',
     ];
 
     public function product(): BelongsTo
@@ -68,5 +72,19 @@ class ProductPrice extends Model
     public static function getBillingPeriods(): array
     {
         return ['once', 'daily', 'weekly', 'monthly', 'yearly'];
+    }
+
+    public function hasCreditAllocations(): bool
+    {
+        return ! empty($this->credit_allocations) && is_array($this->credit_allocations);
+    }
+
+    public function getCreditAllocation(string $type): float
+    {
+        if (! $this->hasCreditAllocations()) {
+            return 0.0;
+        }
+
+        return (float) ($this->credit_allocations[$type] ?? 0.0);
     }
 }

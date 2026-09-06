@@ -3,6 +3,7 @@ import orders from './orders'
 import subscriptions from './subscriptions'
 import checkout from './checkout'
 import transactions from './transactions'
+import wallets from './wallets'
 import products from './products'
 /**
 * @see \App\Http\Controllers\Api\User\AuthController::me
@@ -91,6 +92,7 @@ const user = {
     subscriptions: Object.assign(subscriptions, subscriptions),
     checkout: Object.assign(checkout, checkout),
     transactions: Object.assign(transactions, transactions),
+    wallets: Object.assign(wallets, wallets),
     products: Object.assign(products, products),
 }
 

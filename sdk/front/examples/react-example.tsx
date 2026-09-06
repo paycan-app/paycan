@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import PayCan from '@paycan/sdk';
-import type { Order, Subscription } from '@paycan/sdk';
+import type { Order, Subscription, Wallet } from '@paycan/sdk';
 
 // ==========================================
 // 1. Create PayCan Context
@@ -319,7 +319,82 @@ export function SubscriptionManager() {
 }
 
 // ==========================================
-// 7. Example: Main App Component
+// 7. Example: Wallet Credits & AI Metering
+// ==========================================
+
+export function WalletCredits() {
+  const { paycan, isAuthenticated } = usePayCan();
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deducting, setDeducting] = useState(false);
+
+  useEffect(() => {
+    loadWallets();
+  }, [isAuthenticated, paycan]);
+
+  const loadWallets = async () => {
+    if (!isAuthenticated || !paycan) return;
+    try {
+      setLoading(true);
+      const { data } = await paycan.wallets.list();
+      setWallets(data || []);
+    } catch (err) {
+      console.error('Failed to load wallets:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRunAiAgent = async () => {
+    if (!paycan) return;
+    try {
+      setDeducting(true);
+      const result = await paycan.wallets.deduct({
+        amount: 2.5,
+        type: 'basic',
+        description: 'AI Code Analysis - 1,250 tokens',
+        reference_id: 'agent_' + Date.now(),
+        meta: { model: 'gpt-4o-mini', tokens: 1250 }
+      });
+      alert(`AI Agent executed! Remaining balance: ${result.wallet?.balance} credits`);
+      await loadWallets();
+    } catch (err: any) {
+      if (err.error === 'insufficient_credits') {
+        alert('Insufficient credits! Please top up.');
+        paycan.openWalletsModal();
+      } else {
+        alert('Deduction failed: ' + err.message);
+      }
+    } finally {
+      setDeducting(false);
+    }
+  };
+
+  if (loading) return <div>Loading credits...</div>;
+
+  return (
+    <div className="wallet-credits">
+      <h2>AI Credits &amp; Wallets</h2>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+        {wallets.map((wallet) => (
+          <div key={wallet.id} style={{ border: '1px solid #ccc', borderRadius: 8, padding: '1rem' }}>
+            <h3>{wallet.type.toUpperCase()} Credits</h3>
+            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{parseFloat(wallet.balance).toFixed(2)}</p>
+          </div>
+        ))}
+      </div>
+      <button onClick={handleRunAiAgent} disabled={deducting}>
+        {deducting ? 'Executing...' : 'Run AI Task (-2.5 Credits)'}
+      </button>
+      <button onClick={() => paycan?.openWalletsModal()} style={{ marginLeft: 8 }}>
+        View Credit History &amp; Usage Logs
+      </button>
+    </div>
+  );
+}
+
+// ==========================================
+// 8. Example: Main App Component
 // ==========================================
 
 export function App() {
@@ -344,6 +419,9 @@ export function App() {
             <p>This is only visible to premium subscribers!</p>
           </div>
         </SubscriptionGate>
+
+        {/* AI Wallets & Metered Credits */}
+        <WalletCredits />
 
         {/* Orders list */}
         <OrdersList />

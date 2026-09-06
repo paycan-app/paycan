@@ -104,6 +104,16 @@ POST /api/user/checkout/portal         # Get customer portal URL
 POST /api/user/checkout/{order}/cancel # Cancel a pending order
 ```
 
+#### Wallets & Credits
+```
+GET  /api/user/wallets                           # List user's wallets (basic & premium balances)
+GET  /api/user/wallets/{wallet}                  # Get specific wallet details
+GET  /api/user/wallets/{wallet}/transactions     # Get transactions for a specific wallet
+GET  /api/user/wallets/transactions/all          # Get transactions across all user wallets
+GET  /api/user/wallets/usages/all                # Get usage logs (AI debits) across wallets
+POST /api/user/wallets/deduct                    # Deduct credits for usage (metered/AI agents)
+```
+
 > **Tax**: PayCan does not calculate tax. Tax is calculated and collected by the
 > payment gateway at checkout — enable **Automatic Tax (Stripe Tax)** in the Stripe
 > settings, or configure tax in your PayPal account. Recorded order totals always
@@ -136,6 +146,18 @@ GET /api/admin/orders/{order} # Get order details
 ```
 GET /api/admin/settings  # Get all settings
 PUT /api/admin/settings  # Update settings
+```
+
+#### Wallet & Credit Management
+```
+GET  /api/admin/users/{user}/wallets                       # List wallets for a user
+GET  /api/admin/users/{user}/wallets/{wallet}/transactions # List transactions for user wallet
+GET  /api/admin/users/{user}/wallets/transactions/all      # List all transactions for user
+GET  /api/admin/users/{user}/wallets/usages                # List usage records for user
+GET  /api/admin/wallets/transactions                       # Global list of wallet transactions
+GET  /api/admin/wallets/usages                             # Global list of credit usages
+POST /api/admin/wallets/deduct                             # Deduct credits from user wallet
+POST /api/admin/wallets/topup                              # Add/top-up credits to user wallet
 ```
 
 ---

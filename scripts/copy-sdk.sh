@@ -11,6 +11,8 @@ echo "📦 Copying SDK to public directory..."
 cd ../..
 mkdir -p public/sdk
 cp sdk/front/dist/index.esm.js public/sdk/paycan-sdk.js
+mkdir -p public/demo/vendor
+cp sdk/front/dist/index.esm.js public/demo/vendor/paycan-sdk.js
 
 echo "📦 Copying API-only SDK to public directory..."
 cp sdk/front/dist/api.esm.js public/sdk/paycan-sdk.api.js

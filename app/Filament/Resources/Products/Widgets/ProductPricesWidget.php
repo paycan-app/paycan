@@ -119,6 +119,14 @@ class ProductPricesWidget extends TableWidget
                 ->icon('heroicon-o-plus')
                 ->form($this->priceFormSchema())
                 ->action(function (array $data): void {
+                    $allocations = [];
+                    if (! empty($data['basic_credits'])) {
+                        $allocations['basic'] = (float) $data['basic_credits'];
+                    }
+                    if (! empty($data['premium_credits'])) {
+                        $allocations['premium'] = (float) $data['premium_credits'];
+                    }
+
                     ProductPrice::create([
                         'product_id' => $this->record->id,
                         'title' => $data['title'] ?? null,
@@ -129,6 +137,8 @@ class ProductPricesWidget extends TableWidget
                         'trial_days' => $data['trial_days'] ?? 0,
                         'is_active' => $data['is_active'] ?? true,
                         'description' => $data['description'] ?? null,
+                        'credit_allocations' => ! empty($allocations) ? $allocations : null,
+                        'credit_renewal_policy' => $data['credit_renewal_policy'] ?? 'accumulate',
                     ]);
                 })
                 ->modalWidth('lg'),
@@ -151,8 +161,24 @@ class ProductPricesWidget extends TableWidget
                     'trial_days' => $record->trial_days,
                     'is_active' => $record->is_active,
                     'description' => $record->description,
+                    'basic_credits' => $record->credit_allocations['basic'] ?? null,
+                    'premium_credits' => $record->credit_allocations['premium'] ?? null,
+                    'credit_renewal_policy' => $record->credit_renewal_policy ?? 'accumulate',
                 ])
-                ->action(fn (ProductPrice $record, array $data) => $record->update($data))
+                ->action(function (ProductPrice $record, array $data): void {
+                    $allocations = [];
+                    if (! empty($data['basic_credits'])) {
+                        $allocations['basic'] = (float) $data['basic_credits'];
+                    }
+                    if (! empty($data['premium_credits'])) {
+                        $allocations['premium'] = (float) $data['premium_credits'];
+                    }
+
+                    $data['credit_allocations'] = ! empty($allocations) ? $allocations : null;
+                    unset($data['basic_credits'], $data['premium_credits']);
+
+                    $record->update($data);
+                })
                 ->modalWidth('lg'),
 
             \Filament\Actions\DeleteAction::make()
@@ -332,6 +358,27 @@ class ProductPricesWidget extends TableWidget
                 ->placeholder('Optional description for this pricing option')
                 ->columnSpanFull()
                 ->rows(3),
+
+            \Filament\Forms\Components\TextInput::make('basic_credits')
+                ->label('Basic Credits')
+                ->numeric()
+                ->placeholder('e.g. 1000')
+                ->helperText('Credits granted to Basic wallet per cycle/purchase'),
+
+            \Filament\Forms\Components\TextInput::make('premium_credits')
+                ->label('Premium Credits')
+                ->numeric()
+                ->placeholder('e.g. 50')
+                ->helperText('Credits granted to Premium wallet per cycle/purchase'),
+
+            \Filament\Forms\Components\Select::make('credit_renewal_policy')
+                ->label('Credit Renewal Policy')
+                ->options([
+                    'accumulate' => 'Accumulate / Rollover (Add to balance)',
+                    'reset' => 'Reset Quota (Replace balance each cycle)',
+                ])
+                ->default('accumulate')
+                ->helperText('How subscription renewal affects remaining credits'),
         ];
     }
 }

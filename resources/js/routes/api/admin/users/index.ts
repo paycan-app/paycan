@@ -1,4 +1,5 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../../../wayfinder'
+import wallets from './wallets'
 /**
 * @see \App\Http\Controllers\Api\Admin\UserController::index
 * @see app/Http/Controllers/Api/Admin/UserController.php:120
@@ -427,6 +428,7 @@ const users = {
     show: Object.assign(show, show),
     update: Object.assign(update, update),
     destroy: Object.assign(destroy, destroy),
+    wallets: Object.assign(wallets, wallets),
 }
 
 export default users

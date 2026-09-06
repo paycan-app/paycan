@@ -3,6 +3,7 @@ import products from './products'
 import orders from './orders'
 import settings from './settings'
 import transactions from './transactions'
+import wallets from './wallets'
 
 const admin = {
     users: Object.assign(users, users),
@@ -10,6 +11,7 @@ const admin = {
     orders: Object.assign(orders, orders),
     settings: Object.assign(settings, settings),
     transactions: Object.assign(transactions, transactions),
+    wallets: Object.assign(wallets, wallets),
 }
 
 export default admin

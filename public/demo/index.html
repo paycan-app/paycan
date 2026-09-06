@@ -624,6 +624,17 @@ new TransactionsModal(paycan, { theme: 'auto' }).open();</code></pre></div>
             <button type="button" class="btn btn-primary btn-sm" id="btn-transactions" data-requires-auth>Open transactions</button>
           </div>
         </div>
+
+        <div class="card">
+          <div class="card-top"><h3><code>WalletsModal</code></h3><span class="badge badge-auth">auth</span></div>
+          <p>Multi-wallet credit balances, transaction activity, and AI token usage logs. Supports Basic &amp; Premium credits.</p>
+          <div class="code-block"><pre><code>import { WalletsModal } from '@paycan/sdk';
+
+new WalletsModal(paycan, { theme: 'auto' }).open();</code></pre></div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-wallets" data-requires-auth>Open wallets &amp; credits</button>
+          </div>
+        </div>
       </div>
 
       <div class="result-panel" id="checkout-result" hidden>
@@ -654,6 +665,8 @@ new TransactionsModal(paycan, { theme: 'auto' }).open();</code></pre></div>
           <button type="button" data-snippet="active-subscriptions">Active subscriptions</button>
           <button type="button" data-snippet="checkout-preview">Preview a checkout</button>
           <button type="button" data-snippet="create-checkout">Create checkout session</button>
+          <button type="button" data-snippet="list-wallets">My wallets &amp; credits</button>
+          <button type="button" data-snippet="deduct-credits">Deduct AI credits</button>
         </nav>
         <div class="playground-main">
           <div class="code-block" data-snippet-code="list-products"><span class="code-label">Public — no auth needed</span>
@@ -676,6 +689,16 @@ const hasPremium = active.some((sub) =&gt; sub.product?.name === 'Pro Plan');</c
   billing_email: 'guest@example.com',
 });
 // then: window.location.href = session.checkout_url;</code></pre></div>
+          <div class="code-block" data-snippet-code="list-wallets" hidden><span class="code-label">Requires a user token — returns Basic &amp; Premium wallets + AI usage logs</span>
+<pre><code>const { data: wallets } = await paycan.wallets.list();
+const { data: usages } = await paycan.wallets.usages({ page: 1, per_page: 5 });</code></pre></div>
+          <div class="code-block" data-snippet-code="deduct-credits" hidden><span class="code-label">Atomic AI agent deduction with token metadata</span>
+<pre><code>const result = await paycan.wallets.deduct({
+  amount: 2.5,
+  type: 'basic',
+  description: 'AI Chat Completion (1,250 tokens)',
+  meta: { model: 'gpt-4o-mini', tokens: 1250 }
+});</code></pre></div>
 
           <pre class="playground-output" id="playground-output">// Click "Run" to execute the selected call against the mock API</pre>
           <div class="playground-run">
