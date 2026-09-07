@@ -54,11 +54,11 @@ PayCan comes with a built-in, metered credit and wallet engine designed specific
 
 ## Main Features
 
-- ** Unified Payment Gateways**: Connect Stripe and PayPal with a single unified interface — zero vendor lock-in, with more gateways coming soon.
-- ** Subscriptions & One-Time Products**: Sell recurring plans with automatic renewals, grace periods, plan changes, or one-time digital goods.
-- ** Drop-In Web Components**: 5+ framework-agnostic modal components (`WalletsModal`, `CheckoutModal`, `SubscriptionsModal`, `OrdersModal`, `TransactionsModal`) rendered in isolated Shadow DOM with full dark mode support.
-- ** Self-Hosted & Independent**: Retain 100% control over your database, pricing rules, and customer data with no platform fee per transaction.
-- ** Developer & Agent First**: Safe token-exchange architecture (server-to-server API key vs. browser-scoped JWT) and straightforward REST/SDK APIs.
+- **Unified Payment Gateways**: Connect Stripe and PayPal with a single unified interface — zero vendor lock-in, with more gateways coming soon.
+- **Subscriptions & One-Time Products**: Sell recurring plans with automatic renewals, grace periods, plan changes, or one-time digital goods.
+- **Drop-In Web Components**: 5+ framework-agnostic modal components (`WalletsModal`, `CheckoutModal`, `SubscriptionsModal`, `OrdersModal`, `TransactionsModal`) rendered in isolated Shadow DOM with full dark mode support.
+- **Self-Hosted & Independent**: Retain 100% control over your database, pricing rules, and customer data with no platform fee per transaction.
+- **Developer & Agent First**: Safe token-exchange architecture (server-to-server API key vs. browser-scoped JWT) and straightforward REST/SDK APIs.
 
 ---
 
