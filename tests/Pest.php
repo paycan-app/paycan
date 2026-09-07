@@ -25,6 +25,11 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature/Settings');
 
+// Configure Wallet tests
+pest()->extend(Tests\TestCase::class)
+    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in('Feature/Wallet');
+
 // Configure TestCase for Unit tests
 pest()->extend(Tests\TestCase::class)
     ->in('Unit');

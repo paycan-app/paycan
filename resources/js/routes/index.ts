@@ -177,6 +177,80 @@ homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 home.form = homeForm
 
 /**
+* @see routes/web.php:35
+* @route '/login'
+*/
+export const login = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: login.url(options),
+    method: 'get',
+})
+
+login.definition = {
+    methods: ["get","head"],
+    url: '/login',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see routes/web.php:35
+* @route '/login'
+*/
+login.url = (options?: RouteQueryOptions) => {
+    return login.definition.url + queryParams(options)
+}
+
+/**
+* @see routes/web.php:35
+* @route '/login'
+*/
+login.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: login.url(options),
+    method: 'get',
+})
+
+/**
+* @see routes/web.php:35
+* @route '/login'
+*/
+login.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: login.url(options),
+    method: 'head',
+})
+
+/**
+* @see routes/web.php:35
+* @route '/login'
+*/
+const loginForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: login.url(options),
+    method: 'get',
+})
+
+/**
+* @see routes/web.php:35
+* @route '/login'
+*/
+loginForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: login.url(options),
+    method: 'get',
+})
+
+/**
+* @see routes/web.php:35
+* @route '/login'
+*/
+loginForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: login.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+login.form = loginForm
+
+/**
 * @see \App\Http\Controllers\PortalController::portal
 * @see app/Http/Controllers/PortalController.php:18
 * @route '/portal'

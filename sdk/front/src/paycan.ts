@@ -10,8 +10,10 @@ import { Subscriptions } from './resources/subscriptions';
 import { Checkout } from './resources/checkout';
 import { Products } from './resources/products';
 import { Transactions } from './resources/transactions';
+import { Wallets } from './resources/wallets';
 import { CheckoutModal, type CheckoutModalOptions } from './components/checkout-modal';
 import { ProductsModal, type ProductsModalOptions } from './components/products-modal';
+import { WalletsModal, type WalletsModalOptions } from './components/wallets-modal';
 import type { PayCanConfig, AuthResponse, AuthenticationConfig, User } from './types';
 
 export class PayCan {
@@ -32,6 +34,9 @@ export class PayCan {
   /** Transactions API */
   public transactions: Transactions;
 
+  /** Wallets & Credits API */
+  public wallets: Wallets;
+
   /**
    * Create a new PayCan instance
    *
@@ -49,6 +54,7 @@ export class PayCan {
     this.subscriptions = new Subscriptions(this.http, config);
     this.products = new Products(this.http);
     this.transactions = new Transactions(this.http);
+    this.wallets = new Wallets(this.http);
     this.checkout = new Checkout(this.http, this.orders, this.subscriptions);
   }
 
@@ -352,6 +358,38 @@ export class PayCan {
     modal.open();
 
     this.log('Opening products modal', options.type ? `for type: ${options.type}` : '');
+
+    return modal;
+  }
+
+  /**
+   * Open wallets & credit usage modal
+   *
+   * Displays the user's credit wallets, current balances,
+   * transaction history, and AI agent usage logs.
+   *
+   * @example
+   * paycan.openWalletsModal();
+   *
+   * @example
+   * paycan.openWalletsModal({
+   *   theme: 'dark',
+   *   onClose: () => console.log('Wallets modal closed')
+   * });
+   */
+  openWalletsModal(options: Partial<WalletsModalOptions> = {}): WalletsModal {
+    const modalOptions: WalletsModalOptions = {
+      theme: options.theme || 'auto',
+      onClose: options.onClose,
+      onError: options.onError,
+      onTopup: options.onTopup,
+      onTopupRequested: options.onTopupRequested,
+    };
+
+    const modal = new WalletsModal(this, modalOptions);
+    modal.open();
+
+    this.log('Opening wallets modal');
 
     return modal;
   }

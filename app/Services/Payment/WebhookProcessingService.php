@@ -6,13 +6,15 @@ use App\Models\Order;
 use App\Models\Subscription;
 use App\Services\Order\OrderService;
 use App\Services\Subscription\SubscriptionService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\Log;
 
 class WebhookProcessingService
 {
     public function __construct(
         protected OrderService $orderService,
-        protected SubscriptionService $subscriptionService
+        protected SubscriptionService $subscriptionService,
+        protected WalletService $walletService
     ) {}
 
     /**
@@ -381,7 +383,10 @@ class WebhookProcessingService
         }
 
         if (isset($data['transaction_data'])) {
-            $this->subscriptionService->createSubscriptionTransaction($subscription, $data['transaction_data']);
+            $transaction = $this->subscriptionService->createSubscriptionTransaction($subscription, $data['transaction_data']);
+            if ($transaction && $transaction->status === 'completed') {
+                $this->walletService->applySubscriptionAllocation($subscription, true);
+            }
         }
 
         return ['success' => true, 'message' => 'Transaction processed successfully'];

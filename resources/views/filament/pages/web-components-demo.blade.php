@@ -513,6 +513,54 @@ modal.open();</code></pre>
         </div>
     </x-filament::section>
 
+    <!-- Wallets & Credits Modal -->
+    <x-filament::section collapsible collapsed>
+        <x-slot name="heading">
+            Wallets & Credits Modal
+        </x-slot>
+        <x-slot name="description">
+            View credit balances, transactions, and AI usage logs (requires authentication).
+        </x-slot>
+
+        <div class="demo-section">
+            <div>
+                <div data-auth-warning class="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm" style="display: none;">
+                    Please login first.
+                </div>
+
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">View basic and premium credit balances, activity logs, and token usage details.</p>
+
+                <div class="flex flex-wrap gap-2">
+                    <x-filament::button data-demo-action="wallets" data-theme="light" data-requires-auth>
+                        Light
+                    </x-filament::button>
+                    <x-filament::button data-demo-action="wallets" data-theme="dark" color="gray" data-requires-auth>
+                        Dark
+                    </x-filament::button>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-sm font-medium mb-2">Code:</p>
+                <div class="demo-code">
+                    <button type="button" class="copy-button" data-copy-target="wallets">Copy</button>
+                    <pre id="wallets"><code>import { WalletsModal } from '{{ config('app.url') }}/sdk/paycan-sdk.js';
+
+const modal = new WalletsModal(paycan, {
+  theme: 'light',
+  onTopupRequested: (wallet) => {
+    console.log('Top up requested for wallet:', wallet);
+  },
+});
+modal.open();
+
+// Or via helper:
+paycan.openWalletsModal({ theme: 'light' });</code></pre>
+                </div>
+            </div>
+        </div>
+    </x-filament::section>
+
     <!-- API Reference -->
     <x-filament::section collapsible collapsed>
         <x-slot name="heading">
@@ -624,11 +672,30 @@ const session = await paycan.checkout.create({
 await paycan.transactions.get(id);</code></pre>
                 </div>
             </div>
+
+            <div class="demo-section">
+                <div>
+                    <h3 class="text-base font-semibold mb-2">Wallets & Credits API</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Query wallets, inspect live balances, and view transaction/metered usage logs (read-only for clients).</p>
+                </div>
+                <div class="demo-code">
+                    <button type="button" class="copy-button" data-copy-target="api-wallets">Copy</button>
+                    <pre id="api-wallets"><code>// List user wallets (basic & premium)
+const { data: wallets } = await paycan.wallets.list();
+
+// View all transactions & AI usage logs
+const { data: transactions } = await paycan.wallets.listAllTransactions({ page: 1, limit: 10 });
+const { data: usages } = await paycan.wallets.listUsages({ page: 1, limit: 10 });
+
+// Note: Credit deductions & top-ups are securely performed
+// server-side using your Admin API key (POST /api/admin/wallets/deduct)</code></pre>
+                </div>
+            </div>
         </div>
     </x-filament::section>
 
     <script type="module">
-        import { PayCan, SubscriptionsModal, OrdersModal, TransactionsModal } from '/sdk/paycan-sdk.js?v={{ filemtime(public_path('sdk/paycan-sdk.js')) }}';
+        import { PayCan, SubscriptionsModal, OrdersModal, TransactionsModal, WalletsModal } from '/sdk/paycan-sdk.js?v={{ filemtime(public_path('sdk/paycan-sdk.js')) }}';
 
         const DEMO_TOKEN = {{ Js::from($token) }};
         const PRODUCT_ID = {{ Js::from($productId) }};
@@ -722,6 +789,7 @@ await paycan.transactions.get(id);</code></pre>
             'subscriptions': (trigger) => new SubscriptionsModal(paycan, modalOptions(trigger)).open(),
             'orders': (trigger) => new OrdersModal(paycan, modalOptions(trigger)).open(),
             'transactions': (trigger) => new TransactionsModal(paycan, modalOptions(trigger)).open(),
+            'wallets': (trigger) => paycan.openWalletsModal(modalOptions(trigger)),
         };
 
         async function copyCode(button) {

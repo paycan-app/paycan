@@ -191,26 +191,46 @@
                     }
                 },
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Checkout session created successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "order": {
-                                            "$ref": "#/components/schemas/Order"
-                                        },
-                                        "gateway_data": {
+                                        "checkout": {
                                             "properties": {
+                                                "session_id": {
+                                                    "type": "string",
+                                                    "example": "cs_test_..."
+                                                },
                                                 "checkout_url": {
                                                     "type": "string",
                                                     "example": "https://checkout.stripe.com/pay/cs_test_..."
+                                                },
+                                                "order_id": {
+                                                    "type": "string",
+                                                    "example": "ord_123"
+                                                },
+                                                "subscription_id": {
+                                                    "type": "string",
+                                                    "example": "sub_123",
+                                                    "nullable": true
                                                 }
                                             },
                                             "type": "object"
                                         }
                                     },
                                     "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Payment provider failed to create a checkout session",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
                                 }
                             }
                         }
@@ -347,7 +367,7 @@
                     "User Checkout"
                 ],
                 "summary": "Get checkout preview for product/price",
-                "description": "Returns product details, available prices with tax, selected price breakdown, and available payment methods.",
+                "description": "Returns product details, available prices, selected price breakdown, and available payment methods. Tax is calculated and collected by the payment gateway at checkout, so preview totals are pre-tax.",
                 "operationId": "getCheckoutPreview",
                 "parameters": [
                     {
@@ -482,15 +502,10 @@
                                                     "format": "float",
                                                     "example": 19.98
                                                 },
-                                                "tax_amount": {
-                                                    "type": "number",
-                                                    "format": "float",
-                                                    "example": 1.6
-                                                },
                                                 "final_price": {
                                                     "type": "number",
                                                     "format": "float",
-                                                    "example": 21.58
+                                                    "example": 19.98
                                                 }
                                             },
                                             "type": "object",
@@ -535,15 +550,10 @@
                                                         "format": "float",
                                                         "example": 9.99
                                                     },
-                                                    "tax_amount": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "example": 0.8
-                                                    },
                                                     "final_price": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 10.79
+                                                        "example": 9.99
                                                     }
                                                 },
                                                 "type": "object"
@@ -552,24 +562,6 @@
                                         "quantity": {
                                             "type": "integer",
                                             "example": 2
-                                        },
-                                        "tax": {
-                                            "properties": {
-                                                "rate": {
-                                                    "type": "number",
-                                                    "format": "float",
-                                                    "example": 0.08
-                                                },
-                                                "country": {
-                                                    "type": "string",
-                                                    "example": "US"
-                                                },
-                                                "state": {
-                                                    "type": "string",
-                                                    "example": "CA"
-                                                }
-                                            },
-                                            "type": "object"
                                         },
                                         "payment_methods": {
                                             "type": "array",
@@ -2094,6 +2086,415 @@
                     }
                 ]
             }
+        },
+        "/api/user/wallets": {
+            "get": {
+                "tags": [
+                    "User Wallets"
+                ],
+                "summary": "Get user wallets",
+                "description": "Retrieve all credit wallets and current balances for the authenticated user",
+                "operationId": "getUserWallets",
+                "responses": {
+                    "200": {
+                        "description": "Wallets retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Wallet"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/wallets/{type}": {
+            "get": {
+                "tags": [
+                    "User Wallets"
+                ],
+                "summary": "Get specific user wallet",
+                "description": "Retrieve details and current balance for a specific wallet type (e.g. basic, premium)",
+                "operationId": "getUserWalletByType",
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "path",
+                        "description": "Wallet type (e.g. basic, premium)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "premium"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Wallet retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Wallet"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/wallets/{type}/transactions": {
+            "get": {
+                "tags": [
+                    "User Wallets"
+                ],
+                "summary": "Get user wallet transactions",
+                "description": "Retrieve paginated transaction history for the authenticated user's specific wallet",
+                "operationId": "getUserWalletTransactions",
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "path",
+                        "description": "Wallet type (e.g. basic, premium)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "filter[type]",
+                        "in": "query",
+                        "description": "Filter direction (credit, debit)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "credit",
+                                "debit"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[action]",
+                        "in": "query",
+                        "description": "Filter action",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Wallet transactions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/WalletTransaction"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/wallets/transactions": {
+            "get": {
+                "tags": [
+                    "User Wallets"
+                ],
+                "summary": "Get all wallet transactions for authenticated user",
+                "description": "Retrieve paginated transaction history across all credit wallets for the authenticated user",
+                "operationId": "getUserAllWalletTransactions",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "filter[wallet_type]",
+                        "in": "query",
+                        "description": "Filter by wallet type (basic, premium)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter[type]",
+                        "in": "query",
+                        "description": "Filter direction (credit, debit)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "credit",
+                                "debit"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "filter[action]",
+                        "in": "query",
+                        "description": "Filter action",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter[reference_id]",
+                        "in": "query",
+                        "description": "Filter reference ID",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transactions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/WalletTransaction"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user/wallets/usages": {
+            "get": {
+                "tags": [
+                    "User Wallets"
+                ],
+                "summary": "Get credit usage logs for authenticated user",
+                "description": "Retrieve paginated credit usage logs (e.g. AI agent tasks, prompts) for authenticated user",
+                "operationId": "getUserWalletUsages",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "filter[wallet_type]",
+                        "in": "query",
+                        "description": "Filter by wallet type (basic, premium)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filter[reference_id]",
+                        "in": "query",
+                        "description": "Filter reference ID",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Usage logs retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/WalletTransaction"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -2270,6 +2671,24 @@
                         "description": "Billing interval (e.g., every 1 month)",
                         "type": "integer",
                         "example": 1
+                    },
+                    "credit_allocations": {
+                        "description": "Allocated credits per wallet type",
+                        "type": "object",
+                        "example": {
+                            "basic": 5000,
+                            "premium": 100
+                        },
+                        "nullable": true
+                    },
+                    "credit_renewal_policy": {
+                        "description": "Whether unused credits rollover or reset on recurring billing",
+                        "type": "string",
+                        "enum": [
+                            "accumulate",
+                            "reset"
+                        ],
+                        "example": "accumulate"
                     },
                     "is_active": {
                         "description": "Whether the price is active",
@@ -2805,6 +3224,245 @@
                     }
                 },
                 "type": "object"
+            },
+            "Wallet": {
+                "title": "Wallet",
+                "description": "User credit wallet model",
+                "required": [
+                    "id",
+                    "user_id",
+                    "type",
+                    "balance",
+                    "currency",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Wallet ID (ULID)",
+                        "type": "string",
+                        "example": "01JM7A9B8C7D6E5F4G3H2J1K0L"
+                    },
+                    "user_id": {
+                        "description": "User ID",
+                        "type": "string",
+                        "example": "01HKXZ7K5QGXP0B1J2R3T4V5W6"
+                    },
+                    "type": {
+                        "description": "Wallet type (e.g. basic, premium, or custom)",
+                        "type": "string",
+                        "enum": [
+                            "basic",
+                            "premium"
+                        ],
+                        "example": "basic"
+                    },
+                    "balance": {
+                        "description": "Current credit balance",
+                        "type": "number",
+                        "format": "float",
+                        "example": 1250
+                    },
+                    "currency": {
+                        "description": "Unit of account",
+                        "type": "string",
+                        "example": "credits"
+                    },
+                    "is_active": {
+                        "description": "Whether wallet is active",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "meta": {
+                        "description": "Additional wallet metadata",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "WalletTransaction": {
+                "title": "WalletTransaction",
+                "description": "Credit ledger transaction & usage log entry",
+                "required": [
+                    "id",
+                    "wallet_id",
+                    "user_id",
+                    "type",
+                    "action",
+                    "amount",
+                    "balance_after"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Transaction ID (ULID)",
+                        "type": "string",
+                        "example": "01JM7B1C2D3E4F5G6H7J8K9L0M"
+                    },
+                    "wallet_id": {
+                        "description": "Associated wallet ID",
+                        "type": "string",
+                        "example": "01JM7A9B8C7D6E5F4G3H2J1K0L"
+                    },
+                    "user_id": {
+                        "description": "Associated user ID",
+                        "type": "string",
+                        "example": "01HKXZ7K5QGXP0B1J2R3T4V5W6"
+                    },
+                    "type": {
+                        "description": "Transaction direction: credit (added) or debit (deducted)",
+                        "type": "string",
+                        "enum": [
+                            "credit",
+                            "debit"
+                        ],
+                        "example": "debit"
+                    },
+                    "action": {
+                        "description": "Business event that produced the transaction",
+                        "type": "string",
+                        "enum": [
+                            "usage",
+                            "subscription_grant",
+                            "subscription_renewal",
+                            "order_purchase",
+                            "manual_adjustment",
+                            "subscription_reset"
+                        ],
+                        "example": "usage"
+                    },
+                    "amount": {
+                        "description": "Credit amount",
+                        "type": "number",
+                        "format": "float",
+                        "example": 2.5
+                    },
+                    "balance_after": {
+                        "description": "Wallet balance after transaction",
+                        "type": "number",
+                        "format": "float",
+                        "example": 1247.5
+                    },
+                    "reference_id": {
+                        "description": "External task, agent run, order, or subscription ID",
+                        "type": "string",
+                        "example": "task_run_891",
+                        "nullable": true
+                    },
+                    "description": {
+                        "description": "Human-readable description",
+                        "type": "string",
+                        "example": "GPT-4o agent execution",
+                        "nullable": true
+                    },
+                    "meta": {
+                        "description": "Execution or usage metadata (model, tokens, etc.)",
+                        "type": "object",
+                        "example": {
+                            "model": "gpt-4o",
+                            "tokens": 1200
+                        },
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Creation timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Last update timestamp",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "wallet": {
+                        "$ref": "#/components/schemas/Wallet"
+                    }
+                },
+                "type": "object"
+            },
+            "DeductCreditsResponse": {
+                "title": "Deduct Credits Response",
+                "description": "Successful credit deduction result",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Credits deducted successfully"
+                    },
+                    "data": {
+                        "properties": {
+                            "transaction": {
+                                "$ref": "#/components/schemas/WalletTransaction"
+                            },
+                            "wallet": {
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "example": "premium"
+                                    },
+                                    "balance": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 47.5
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "InsufficientCreditsErrorResponse": {
+                "title": "Insufficient Credits Error Response",
+                "description": "Returned when user wallet balance is too low for the requested deduction",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "insufficient_credits"
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Insufficient credits in premium wallet. Current balance: 1.2, required: 2.5."
+                    },
+                    "data": {
+                        "properties": {
+                            "wallet_type": {
+                                "type": "string",
+                                "example": "premium"
+                            },
+                            "current_balance": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 1.2
+                            },
+                            "required_amount": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 2.5
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -2840,6 +3498,10 @@
         {
             "name": "User Transactions",
             "description": "User transaction management endpoints"
+        },
+        {
+            "name": "User Wallets",
+            "description": "User wallet and credit management endpoints"
         }
     ]
 }

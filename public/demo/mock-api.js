@@ -200,6 +200,104 @@
         order: { id: 'ord_0999', order_number: 'ORD-2026-0999' },
       },
     ],
+
+    wallets: [
+      {
+        id: 'wal_demo_basic',
+        user_id: 'usr_demo_1',
+        type: 'basic',
+        balance: '450.0000',
+        currency: 'credits',
+        is_active: true,
+        meta: { tier: 'standard' },
+        created_at: iso(-30),
+        updated_at: iso(-1),
+      },
+      {
+        id: 'wal_demo_premium',
+        user_id: 'usr_demo_1',
+        type: 'premium',
+        balance: '45.0000',
+        currency: 'credits',
+        is_active: true,
+        meta: { tier: 'premium' },
+        created_at: iso(-30),
+        updated_at: iso(-1),
+      },
+    ],
+
+    wallet_transactions: [
+      {
+        id: 'wtx_demo_1',
+        wallet_id: 'wal_demo_basic',
+        user_id: 'usr_demo_1',
+        type: 'credit',
+        action: 'subscription_grant',
+        amount: '500.0000',
+        balance_after: '500.0000',
+        reference_id: 'sub_init_grant',
+        description: 'Monthly Pro Plan credit allocation',
+        meta: { plan: 'Pro Plan', tier: 'standard' },
+        created_at: iso(-30),
+        wallet: { id: 'wal_demo_basic', type: 'basic', currency: 'credits' },
+      },
+      {
+        id: 'wtx_demo_2',
+        wallet_id: 'wal_demo_premium',
+        user_id: 'usr_demo_1',
+        type: 'credit',
+        action: 'subscription_grant',
+        amount: '50.0000',
+        balance_after: '50.0000',
+        reference_id: 'sub_init_prem_grant',
+        description: 'Monthly premium AI fast-lane credits',
+        meta: { plan: 'Pro Plan', tier: 'premium' },
+        created_at: iso(-30),
+        wallet: { id: 'wal_demo_premium', type: 'premium', currency: 'credits' },
+      },
+      {
+        id: 'wtx_demo_3',
+        wallet_id: 'wal_demo_basic',
+        user_id: 'usr_demo_1',
+        type: 'debit',
+        action: 'usage',
+        amount: '2.5000',
+        balance_after: '497.5000',
+        reference_id: 'req_ai_chat_98234',
+        description: 'AI Chat Completion - 1,250 tokens',
+        meta: { model: 'gpt-4o-mini', prompt_tokens: 850, completion_tokens: 400, tokens: 1250 },
+        created_at: iso(-5),
+        wallet: { id: 'wal_demo_basic', type: 'basic', currency: 'credits' },
+      },
+      {
+        id: 'wtx_demo_4',
+        wallet_id: 'wal_demo_basic',
+        user_id: 'usr_demo_1',
+        type: 'debit',
+        action: 'usage',
+        amount: '47.5000',
+        balance_after: '450.0000',
+        reference_id: 'req_ai_agent_batch',
+        description: 'Code Generation & Review - 23,750 tokens',
+        meta: { model: 'claude-3-5-sonnet', prompt_tokens: 18000, completion_tokens: 5750, tokens: 23750 },
+        created_at: iso(-2),
+        wallet: { id: 'wal_demo_basic', type: 'basic', currency: 'credits' },
+      },
+      {
+        id: 'wtx_demo_5',
+        wallet_id: 'wal_demo_premium',
+        user_id: 'usr_demo_1',
+        type: 'debit',
+        action: 'usage',
+        amount: '5.0000',
+        balance_after: '45.0000',
+        reference_id: 'req_ai_reasoning_o3',
+        description: 'Deep Reasoning Agent - Complex Workflow',
+        meta: { model: 'o3-mini', reasoning_tokens: 4000, tokens: 4000 },
+        created_at: iso(-1),
+        wallet: { id: 'wal_demo_premium', type: 'premium', currency: 'credits' },
+      },
+    ],
   };
 
   /* ------------------------------------------------------------------ *
@@ -219,7 +317,7 @@
 
   function paginate(items, searchParams, defaultPerPage) {
     var page = parseInt(searchParams.get('page') || '1', 10);
-    var perPage = parseInt(searchParams.get('per_page') || String(defaultPerPage || 10), 10);
+    var perPage = parseInt(searchParams.get('per_page') || searchParams.get('limit') || String(defaultPerPage || 10), 10);
     var lastPage = Math.max(1, Math.ceil(items.length / perPage));
     var slice = items.slice((page - 1) * perPage, page * perPage);
     return {
@@ -497,6 +595,52 @@
     if (method === 'GET' && path === '/api/user/transactions') {
       if (!isAuthenticated(init)) { return unauthenticated(); }
       return json(paginate(db.transactions, sp, 20));
+    }
+
+    if (method === 'GET' && path === '/api/user/wallets') {
+      if (!isAuthenticated(init)) { return unauthenticated(); }
+      return json({ data: db.wallets });
+    }
+
+    if (method === 'GET' && (path === '/api/user/wallets/transactions' || path === '/api/user/wallets/transactions/all')) {
+      if (!isAuthenticated(init)) { return unauthenticated(); }
+      var walletType = sp.get('wallet_type') || sp.get('filter[wallet_type]');
+      var txs = db.wallet_transactions;
+      if (walletType) {
+        txs = txs.filter(function (t) { return t.wallet && t.wallet.type === walletType; });
+      }
+      return json(paginate(txs, sp, 20));
+    }
+
+    if (method === 'GET' && (path === '/api/user/wallets/usages' || path === '/api/user/wallets/usages/all')) {
+      if (!isAuthenticated(init)) { return unauthenticated(); }
+      var usagesWalletType = sp.get('wallet_type') || sp.get('filter[wallet_type]');
+      var usagesList = db.wallet_transactions.filter(function (t) { return t.action === 'usage'; });
+      if (usagesWalletType) {
+        usagesList = usagesList.filter(function (t) { return t.wallet && t.wallet.type === usagesWalletType; });
+      }
+      return json(paginate(usagesList, sp, 20));
+    }
+
+    if ((m = path.match(/^\/api\/user\/wallets\/([^/]+)\/transactions$/)) && method === 'GET') {
+      if (!isAuthenticated(init)) { return unauthenticated(); }
+      var wMatch = db.wallets.find(function (w) { return String(w.id) === String(m[1]) || w.type === m[1]; });
+      if (!wMatch) { return json({ message: 'Wallet not found.' }, 404); }
+      var txList = db.wallet_transactions.filter(function (t) { return t.wallet_id === wMatch.id; });
+      return json(paginate(txList, sp, 20));
+    }
+
+    if ((m = path.match(/^\/api\/user\/wallets\/([^/]+)$/)) && method === 'GET') {
+      if (!isAuthenticated(init)) { return unauthenticated(); }
+      if (m[1] === 'transactions' || m[1] === 'usages' || m[1] === 'deduct') {
+        return json({ message: 'Wallet not found.' }, 404);
+      }
+      var targetWallet = db.wallets.find(function (w) { return String(w.id) === String(m[1]) || w.type === m[1]; });
+      return targetWallet ? json({ data: targetWallet }) : json({ message: 'Wallet not found.' }, 404);
+    }
+
+    if (method === 'POST' && path === '/api/user/wallets/deduct') {
+      return json({ message: 'User wallet operations are read-only. Deductions must be performed server-side via the Admin API.' }, 405);
     }
 
     return json({ message: 'Mock route not found: ' + method + ' ' + path }, 404);

@@ -111,6 +111,15 @@ Route::prefix('user')->middleware(['auth:sanctum', 'throttle:120,1'])->group(fun
         Route::get('/{transaction}', 'show')->name('api.user.transactions.show');
     });
 
+    // Wallets & Credits
+    Route::prefix('wallets')->controller(\App\Http\Controllers\Api\User\WalletController::class)->group(function () {
+        Route::get('/', 'index')->name('api.user.wallets.index');
+        Route::get('/transactions', 'allTransactions')->name('api.user.wallets.all_transactions');
+        Route::get('/usages', 'usages')->name('api.user.wallets.usages');
+        Route::get('/{type}', 'show')->name('api.user.wallets.show');
+        Route::get('/{type}/transactions', 'transactions')->name('api.user.wallets.transactions');
+    });
+
 }); // closes the 'user' group
 
 // Products (active products with prices) - no user authentication required
@@ -190,6 +199,18 @@ Route::prefix('admin')->middleware(['api.key', 'throttle:120,1'])->group(functio
         Route::get('/', 'index')->name('api.admin.transactions.index');
         Route::get('/{transaction}', 'show')->name('api.admin.transactions.show');
     });
+
+    // Wallet & Credits management
+    Route::prefix('wallets')->controller(\App\Http\Controllers\Api\Admin\WalletController::class)->group(function () {
+        Route::post('/deduct', 'deduct')->name('api.admin.wallets.deduct');
+        Route::post('/topup', 'topup')->name('api.admin.wallets.topup');
+        Route::get('/transactions', 'globalTransactions')->name('api.admin.wallets.transactions');
+        Route::get('/usages', 'globalUsages')->name('api.admin.wallets.usages');
+    });
+    Route::get('/users/{user}/wallets', [\App\Http\Controllers\Api\Admin\WalletController::class, 'index'])->name('api.admin.users.wallets.index');
+    Route::get('/users/{user}/wallets/transactions', [\App\Http\Controllers\Api\Admin\WalletController::class, 'allTransactions'])->name('api.admin.users.wallets.all_transactions');
+    Route::get('/users/{user}/wallets/usages', [\App\Http\Controllers\Api\Admin\WalletController::class, 'usages'])->name('api.admin.users.wallets.usages');
+    Route::get('/users/{user}/wallets/{type}/transactions', [\App\Http\Controllers\Api\Admin\WalletController::class, 'transactions'])->name('api.admin.users.wallets.transactions');
 });
 
 /*

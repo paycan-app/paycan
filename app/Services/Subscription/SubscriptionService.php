@@ -4,11 +4,16 @@ namespace App\Services\Subscription;
 
 use App\Models\Subscription;
 use App\Models\Transaction;
+use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SubscriptionService
 {
+    public function __construct(
+        protected WalletService $walletService
+    ) {}
+
     /**
      * Activate a subscription (transition from incomplete to active)
      */
@@ -50,6 +55,8 @@ class SubscriptionService
                     'activation_data' => $gatewayData,
                 ]),
             ]);
+
+            $this->walletService->applySubscriptionAllocation($subscription, false);
 
             Log::info('Subscription activated', [
                 'subscription_id' => $subscription->id,
@@ -149,7 +156,7 @@ class SubscriptionService
                 'status' => $data['status'] ?? 'completed',
                 'gateway' => $subscription->gateway,
                 'amount' => $data['amount'] ?? null,
-                'currency' => $data['currency'] ?? null,
+                'currency' => $data['currency'] ?? $subscription->order?->currency ?? 'USD',
                 'gateway_transaction_id' => $data['gateway_transaction_id'] ?? null,
                 'gateway_data' => $data['gateway_data'] ?? [],
                 'meta' => $data['meta'] ?? [],

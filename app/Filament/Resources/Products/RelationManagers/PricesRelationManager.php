@@ -134,6 +134,27 @@ class PricesRelationManager extends RelationManager
                     ->placeholder('Optional description for this pricing option')
                     ->columnSpanFull()
                     ->rows(3),
+
+                TextInput::make('basic_credits')
+                    ->label('Basic Credits')
+                    ->numeric()
+                    ->placeholder('e.g. 1000')
+                    ->helperText('Credits granted to Basic wallet per cycle/purchase'),
+
+                TextInput::make('premium_credits')
+                    ->label('Premium Credits')
+                    ->numeric()
+                    ->placeholder('e.g. 50')
+                    ->helperText('Credits granted to Premium wallet per cycle/purchase'),
+
+                Select::make('credit_renewal_policy')
+                    ->label('Credit Renewal Policy')
+                    ->options([
+                        'accumulate' => 'Accumulate / Rollover (Add to balance)',
+                        'reset' => 'Reset Quota (Replace balance each cycle)',
+                    ])
+                    ->default('accumulate')
+                    ->helperText('How subscription renewal affects remaining credits'),
             ]);
     }
 
@@ -203,10 +224,42 @@ class PricesRelationManager extends RelationManager
                     ]),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $allocations = [];
+                        if (! empty($data['basic_credits'])) {
+                            $allocations['basic'] = (float) $data['basic_credits'];
+                        }
+                        if (! empty($data['premium_credits'])) {
+                            $allocations['premium'] = (float) $data['premium_credits'];
+                        }
+                        $data['credit_allocations'] = ! empty($allocations) ? $allocations : null;
+                        unset($data['basic_credits'], $data['premium_credits']);
+
+                        return $data;
+                    }),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->mutateRecordDataUsing(function (array $data, \App\Models\ProductPrice $record): array {
+                        $data['basic_credits'] = $record->credit_allocations['basic'] ?? null;
+                        $data['premium_credits'] = $record->credit_allocations['premium'] ?? null;
+
+                        return $data;
+                    })
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $allocations = [];
+                        if (! empty($data['basic_credits'])) {
+                            $allocations['basic'] = (float) $data['basic_credits'];
+                        }
+                        if (! empty($data['premium_credits'])) {
+                            $allocations['premium'] = (float) $data['premium_credits'];
+                        }
+                        $data['credit_allocations'] = ! empty($allocations) ? $allocations : null;
+                        unset($data['basic_credits'], $data['premium_credits']);
+
+                        return $data;
+                    }),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

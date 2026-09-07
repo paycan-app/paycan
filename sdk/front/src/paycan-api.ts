@@ -6,18 +6,21 @@
  */
 import { HttpClient } from './http-client';
 import { CheckoutLite } from './resources/checkout-lite';
+import { Wallets } from './resources/wallets';
 import { CheckoutModal, type CheckoutModalOptions } from './components/checkout-modal';
 import type { PayCanConfig, AuthResponse, AuthenticationConfig, User } from './types';
 
 export class PayCanApi {
   private http: HttpClient;
   public checkout: CheckoutLite;
+  public wallets: Wallets;
 
   constructor(config: PayCanConfig) {
     this.validateConfig(config);
 
     this.http = new HttpClient(config);
     this.checkout = new CheckoutLite(this.http);
+    this.wallets = new Wallets(this.http);
   }
 
   async me(): Promise<{ user: User }> {

@@ -96,3 +96,38 @@ it('token is not a JWT format', function () {
     $dotParts = explode('.', $token);
     expect(count($dotParts))->not->toBe(3);
 });
+
+it('seeds demo wallets and renders wallets modal section in demo page', function () {
+    $adminUser = AdminUser::factory()->create();
+    actingAs($adminUser, 'admin');
+
+    $pageClass = new \App\Filament\Pages\WebComponentsDemo;
+    $pageClass->mount();
+
+    // Verify wallets are seeded for the demo user
+    expect($pageClass->demoUser->wallets()->count())->toBeGreaterThanOrEqual(2);
+
+    $basicWallet = $pageClass->demoUser->wallets()->where('type', 'basic')->first();
+    expect($basicWallet)->not->toBeNull();
+    expect((float) $basicWallet->balance)->toBeGreaterThan(0);
+
+    // Verify demo token can query user wallets
+    $walletResponse = $this->withHeaders([
+        'Authorization' => 'Bearer '.$pageClass->token,
+        'Accept' => 'application/json',
+    ])->get('/api/user/wallets');
+
+    $walletResponse->assertSuccessful();
+    $walletResponse->assertJsonStructure([
+        'data' => [
+            '*' => ['id', 'type', 'balance', 'currency', 'is_active'],
+        ],
+    ]);
+
+    // Verify page HTML renders the Wallets & Credits section and SDK wiring
+    $response = $this->get('/admin/web-components-demo');
+    $response->assertSuccessful();
+    $response->assertSee('data-demo-action="wallets"', false);
+    $response->assertSee('WalletsModal', false);
+    $response->assertSee('paycan.openWalletsModal', false);
+});
